@@ -26,7 +26,8 @@ let promisesInQueue = 0;
 
 heavyAnimationPromise.resolve();
 
-const log = console.log.bind(console.log, '[HEAVY-ANIMATION]:');
+// const log = console.log.bind(console.log, '[HEAVY-ANIMATION]:');
+const log = (..._args: any) => {};
 
 export function dispatchHeavyAnimationEvent(promise: Promise<any>, timeout?: number) {
   if(!isAnimating) {

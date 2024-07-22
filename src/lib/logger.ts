@@ -131,11 +131,13 @@ export function logger(prefix: string, type: LogTypes = LogTypes.Log | LogTypes.
   // level = LogLevels.log | LogLevels.warn | LogLevels.error | LogLevels.debug
 
   const log: Logger = function(...args: any[]) {
+    return;
     return type & LogTypes.Log && console.log(style, dT(), prefix, /* getCallerFunctionName(), */ ...args);
   } as any;
 
   methods.forEach(([method, logType]) => {
     log[method] = function(...args: any[]) {
+      return;
       return type & logType && console[method](style, dT(), prefix, /* getCallerFunctionName(), */ ...args);
     };
   });

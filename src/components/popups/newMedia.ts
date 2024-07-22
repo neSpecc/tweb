@@ -56,6 +56,7 @@ import {Accessor, createRoot, createSignal, Setter} from 'solid-js';
 import SelectedEffect from '../chat/selectedEffect';
 import PopupMakePaid from './makePaid';
 import paymentsWrapCurrencyAmount from '../../helpers/paymentsWrapCurrencyAmount';
+import Icon from '../icon';
 
 type SendFileParams = SendFileDetails & {
   file?: File,
@@ -577,7 +578,7 @@ export default class PopupNewMedia extends PopupElement {
       good = single ? true : media.length > 1;
 
       if(good) {
-        good = toggle ? media.length !== mediaWithSpoilers.length : media.length === mediaWithSpoilers.length;
+        good = toggle ? media.length !== mediaWithSpoilers.length : mediaWithSpoilers.length > 0;
       }
     }
 
@@ -599,7 +600,7 @@ export default class PopupNewMedia extends PopupElement {
   }
 
   public changeSpoilers(toggle: boolean) {
-    this.partition().media.forEach((item) => {
+    this.partition().media.forEach((item, index) => {
       if(toggle && !item.mediaSpoiler) {
         this.applyMediaSpoiler(item);
       } else if(!toggle && item.mediaSpoiler) {
@@ -1070,6 +1071,11 @@ export default class PopupNewMedia extends PopupElement {
       params.itemDiv.style.height = size.height + 'px';
     }
 
+    const action = this.createMediaActions({
+      sendFileParams: params
+    });
+    params.itemDiv.append(action);
+
     this.mediaContainer.append(params.itemDiv);
   }
 
@@ -1123,12 +1129,23 @@ export default class PopupNewMedia extends PopupElement {
           albumContainer.classList.add('popup-item-album', 'popup-item');
           albumContainer.append(...sendFileDetails.map((s) => s.itemDiv));
 
+          const actionsMaker = (index: number) => {
+            return this.createMediaActions({
+              sendFileParams: sendFileDetails[index],
+              onDelete: () => {
+                this.files.splice(index, 1);
+                this.attachFiles();
+              }
+            });
+          }
+
           prepareAlbum({
             container: albumContainer,
             items: sendFileDetails.map((o) => ({w: o.width, h: o.height})),
             maxWidth: MAX_WIDTH,
             minWidth: 100,
-            spacing: 4
+            spacing: 4,
+            actionsMaker
           });
 
           mediaContainer.append(albumContainer);
@@ -1155,6 +1172,87 @@ export default class PopupNewMedia extends PopupElement {
       this.onRender();
       this.onScroll();
     });
+  }
+
+  private refrehshMediaActions(actionsParams: {
+    sendFileParams: SendFileParams,
+    onDelete?: () => void
+  }) {
+    this.iterate((sendFileDetails) => {
+      sendFileDetails.forEach((params) => {
+        if(params !== actionsParams.sendFileParams) {
+          return;
+        }
+
+        const action = this.createMediaActions(actionsParams);
+
+        const oldAction = params.itemDiv.querySelector('.popup-photo-actions');
+        if(oldAction) {
+          oldAction.replaceWith(action);
+        } else {
+          params.itemDiv.append(action);
+        }
+      });
+    });
+  }
+
+  private createMediaActions(params?: {
+    sendFileParams: SendFileParams,
+    onDelete?: () => void
+  }) {
+    const controls = document.createElement('div');
+    controls.classList.add('popup-photo-actions');
+
+    const buttons = [
+      {
+        icon: 'enhance',
+        ariaLabel: 'Enhance',
+        action: () => {
+          console.log('enhance');
+        }
+      }
+    ];
+
+    const isGallery = params.onDelete !== undefined;
+
+    if(this.canToggleSpoilers(true, !isGallery) && !params.sendFileParams.mediaSpoiler) {
+      buttons.push({
+        icon: 'mediaspoiler',
+        ariaLabel: 'EnablePhotoSpoiler',
+        action: async() => {
+          await this.applyMediaSpoiler(params.sendFileParams);
+          this.refrehshMediaActions(params);
+        }
+      });
+    } else if(this.canToggleSpoilers(false, !isGallery)) {
+      buttons.push({
+        icon: 'mediaspoileroff',
+        ariaLabel: 'DisablePhotoSpoiler',
+        action: () => {
+          this.removeMediaSpoiler(params.sendFileParams);
+          this.refrehshMediaActions(params);
+        }
+      });
+    }
+
+    if(params?.onDelete) {
+      buttons.push({
+        icon: 'delete',
+        ariaLabel: 'Delete',
+        action: params.onDelete
+      });
+    }
+
+    buttons.forEach((button) => {
+      const btn = document.createElement('button');
+      btn.classList.add('popup-photo-actions-item', 'btn-icon');
+      btn.setAttribute('aria-label', button.ariaLabel);
+      btn.addEventListener('click', button.action);
+      btn.append(Icon(button.icon as Icon));
+      controls.append(btn);
+    });
+
+    return controls;
   }
 }
 

@@ -14,7 +14,8 @@ export default function prepareAlbum(options: {
   spacing: number,
   maxHeight?: number,
   forMedia?: true,
-  noGroupedItem?: boolean
+  noGroupedItem?: boolean,
+  actionsMaker?: (index: number) => HTMLElement
 }) {
   const layouter = new Layouter(options.items, options.maxWidth, options.minWidth, options.spacing, options.maxHeight);
   const layout = layouter.layout();
@@ -67,6 +68,10 @@ export default function prepareAlbum(options: {
       mediaDiv.classList.add('album-item-media');
 
       div.append(mediaDiv);
+    }
+
+    if(options.actionsMaker) {
+      div.append(options.actionsMaker(idx));
     }
 
     // @ts-ignore
