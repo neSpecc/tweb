@@ -57,6 +57,7 @@ import SelectedEffect from '../chat/selectedEffect';
 import PopupMakePaid from './makePaid';
 import paymentsWrapCurrencyAmount from '../../helpers/paymentsWrapCurrencyAmount';
 import Icon from '../icon';
+import PopupMediaEditor from './mediaEditor';
 
 type SendFileParams = SendFileDetails & {
   file?: File,
@@ -1208,7 +1209,11 @@ export default class PopupNewMedia extends PopupElement {
         icon: 'enhance',
         ariaLabel: 'Enhance',
         action: () => {
-          console.log('enhance');
+          PopupElement.createPopup(PopupMediaEditor, {
+            file: params.sendFileParams.file,
+            width: params.sendFileParams.width,
+            height: params.sendFileParams.height
+          }).show();
         }
       }
     ];

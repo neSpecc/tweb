@@ -60,6 +60,8 @@ import {averageColorFromCanvas, averageColorFromImage} from '../../helpers/avera
 import highlightingColor from '../../helpers/highlightingColor';
 import callbackify from '../../helpers/callbackify';
 import useIsNightTheme from '../../hooks/useIsNightTheme';
+import PopupElement from '../popups';
+import PopupMediaEditor from '../popups/mediaEditor';
 
 export enum ChatType {
   Chat = 'chat',
@@ -191,6 +193,12 @@ export default class Chat extends EventListenerBase<{
 
     this.backgroundTempId = 0;
     this.sharedMediaTabs = [];
+
+  //   PopupElement.createPopup(PopupMediaEditor, {
+  //     // file: params.sendFileParams.file,
+  //     // width: params.sendFileParams.width,
+  //     // height: params.sendFileParams.height
+  //   }).show();
   }
 
   public hasBackgroundSet() {
