@@ -493,6 +493,11 @@ export function useTextTool(params: UseTextToolParams) {
 
   function setAlignment(alignment: 'left' | 'center' | 'right'): void {
     const box = params.layer.getActiveBox()!;
+
+    if(!box) {
+      return;
+    }
+
     const textarea = box.el.querySelector(`.${CSS.textBox}`) as HTMLDivElement;
 
     if(!textarea) {

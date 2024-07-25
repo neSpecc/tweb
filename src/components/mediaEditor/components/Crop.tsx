@@ -4,6 +4,7 @@ import type {DivLayer, useCanvasLayers} from '../services/useCanvasLayers';
 import type {LeftZoneControls} from '../services/leftZoneControls';
 import type {DraggableBox} from '../services/useDraggableBox';
 import Icon from '../../icon';
+import ripple from '../../ripple';
 
 interface CropProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
@@ -117,7 +118,7 @@ export default function Crop(props: CropProps) {
         </div>
         <div class="pe-resizer__right">
           <span class="pe-resizer__flip" onClick={flip}>
-            { Icon('flip') }
+            { Icon('flip_mirror') }
           </span>
         </div>
       </div>
@@ -575,6 +576,25 @@ export default function Crop(props: CropProps) {
     initCrop();
   }
 
+  function createRow(ratio: Ratio) {
+    const row = (
+      <div
+        classList={{
+          'pe-crop__row': true,
+          'pe-crop__row--selected': aspectRatio() === ratio.title
+        }}
+        onClick={() => aspectRatioChanged(ratio)}
+      >
+        <div class="pe-crop__icon">{ ratio.icon }</div>
+        <div class="pe-crop__title">{ ratio.title }</div>
+      </div>
+    );
+
+    ripple(row as HTMLElement);
+
+    return row;
+  }
+
   return (
     <div class="pe-settins pe-crop">
       <div class="pe-settings__section-header">
@@ -585,18 +605,7 @@ export default function Crop(props: CropProps) {
           <div class="pe-crop__row-wrapper">
             <For each={ratioRow}>
               {ratio => (
-                <div
-                  classList={
-                    {
-                      'pe-crop__row': true,
-                      'pe-crop__row--selected': aspectRatio() === ratio.title
-                    }
-                  }
-                  onClick={() => aspectRatioChanged(ratio)}
-                >
-                  <div class="pe-crop__icon">{ ratio.icon }</div>
-                  <div class="pe-crop__title">{ ratio.title }</div>
-                </div>
+                createRow(ratio)
               )}
             </For>
           </div>

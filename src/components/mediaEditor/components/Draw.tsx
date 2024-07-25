@@ -5,6 +5,7 @@ import type {DrawingTool} from '../services/useDrawing';
 import {useDrawing} from '../services/useDrawing';
 import ColorSelector from './ColorSelector';
 import ToolIcon from './ToolIcon';
+import ripple from '../../ripple';
 
 interface BrushProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
@@ -87,26 +88,38 @@ export default function Brush(props: BrushProps) {
     drawing()!.setTool(tools[index]);
   }
 
+  function creaToolRow(title: string, index: number) {
+    const row = (
+      <div
+        classList={{
+          'pe-settings-row': true,
+          'pe-settings-row--selected': tool() === index
+        }}
+        onClick={_ => selectTool(index)}
+        style={{
+          '--color': tool() === index ? colorHex() : undefined
+        }}
+      >
+        <div class="pe-settings-row__icon">
+          { ToolIcon(title) }
+        </div>
+        <div class="pe-settings-row__title">
+          {title}
+        </div>
+      </div>
+    );
+
+    ripple(row as HTMLElement);
+
+    return row;
+  }
+
   return (
     <div class="pe-settings">
       <div class="pe-settings__tool pe-draw">
         <ColorSelector
           onSelect={selectColor}
         />
-        {/* <div class="pe-draw__color">
-        {colors.map((colorHex, index) => (
-          <div
-            classList={{
-              'pe-draw__color-item': true,
-              'pe-draw__color-item--selected': color() === index,
-            }}
-            onClick={_ => selectColor(index)}
-          >
-            <div class="pe-draw__color-item-icon" style={{ 'background-color': colorHex }} />
-            <div class="pe-draw__color-item-glow" style={{ 'background-color': colorHex }} />
-          </div>
-        ))}
-      </div> */}
         <div class="pe-settings__section-header">
           Size
         </div>
@@ -124,23 +137,7 @@ export default function Brush(props: BrushProps) {
             Tool
           </div>
           {tools.map((toolTitle, index) => (
-            <div
-              classList={{
-                'pe-settings-row': true,
-                'pe-settings-row--selected': tool() === index
-              }}
-              onClick={_ => selectTool(index)}
-              style={{
-                '--color': tool() === index ? colorHex() : undefined
-              }}
-            >
-              <div class="pe-settings-row__icon">
-                { ToolIcon(toolTitle) }
-              </div>
-              <div class="pe-settings-row__title">
-                {toolTitle}
-              </div>
-            </div>
+            creaToolRow(toolTitle, index)
           ))}
         </div>
       </div>

@@ -10,12 +10,15 @@ import Stickers from './components/Stickers';
 import type {LeftZoneControls} from './services/leftZoneControls';
 import {cubicBezier, lerp} from './utils/timing-functions';
 import Icon from '../icon';
+import {Middleware} from '../../helpers/middleware';
+import Icons from '../../icons';
+import ripple from '../ripple';
 
 function MediaEditor(params: {
   file: File,
   width: number,
   height: number,
-}) {
+}, {middleware}: { middleware: Middleware }) {
   const [originalImage, setOriginalImage] = createSignal<HTMLImageElement>();
   const [layerManager, setLayerManager] = createSignal<ReturnType<typeof useCanvasLayers>>();
   const [tab, setTab] = createSignal<number>(0);
@@ -55,12 +58,12 @@ function MediaEditor(params: {
     }
   };
 
-  const tabs = [
-    Icon('enhance'),
-    Icon('crop'),
-    Icon('text'),
-    Icon('brush'),
-    Icon('smile')
+  const tabs: (keyof typeof Icons)[] = [
+    'enhance',
+    'crop',
+    'text',
+    'brush',
+    'smile'
   ];
 
   function loadImage({url, onLoad}: { url: string; onLoad: (image: HTMLImageElement) => void }) {
@@ -189,14 +192,12 @@ function MediaEditor(params: {
     );
   }
 
-  window.addEventListener('load', () => {
-    loadImage({
-      // url: './vertical.png',
-      // url: './photo.png',
-      // url: './camp.jpeg',
-      url: './small.png',
-      onLoad: onImageLoad
-    });
+  loadImage({
+    url: URL.createObjectURL(params.file),
+    onLoad: (image) => {
+      onImageLoad(image);
+      URL.revokeObjectURL(image.src);
+    }
   });
 
   function windowResizeHandler() {
@@ -231,6 +232,21 @@ function MediaEditor(params: {
     document.body.appendChild(result);
   }
 
+  function createTab(icon: keyof typeof Icons, index: number) {
+    const tabEl = (
+      <div
+        class={`tab ${tab() === index ? 'tab--selected' : ''}`}
+        onClick={() => onTabActivate(index)}
+      >
+        <span class="tab__icon">{Icon(icon)}</span>
+      </div>
+    );
+
+    ripple(tabEl as HTMLElement);
+
+    return tabEl;
+  }
+
   return (
     <>
       <div class="media-editor">
@@ -259,9 +275,7 @@ function MediaEditor(params: {
             <div class="tabs">
               <For each={tabs} fallback={<div />}>
                 {(tabIcon, index) => (
-                  <div class={`tab ${tab() === index() ? 'tab--selected' : ''}`} onClick={() => onTabActivate(index())}>
-                    <span class="tab__icon">{tabIcon}</span>
-                  </div>
+                  createTab(tabIcon, index())
                 )}
               </For>
             </div>

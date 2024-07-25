@@ -20,7 +20,9 @@ export default class PopupMediaEditor extends PopupElement {
       }
     );
 
-    this.body.append(MediaEditor(params) as Node)
+    this.body.append(MediaEditor(params, {
+      middleware: this.middlewareHelper.get()
+    }) as Node)
   }
 
   private onImageLoad(image: HTMLImageElement) {

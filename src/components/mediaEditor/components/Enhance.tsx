@@ -1,6 +1,7 @@
 import type {Accessor} from 'solid-js';
 import {For, createSignal, onCleanup, onMount} from 'solid-js';
 import type {CanvasLayer, useCanvasLayers} from '../services/useCanvasLayers';
+import {RangeSelectorTsx} from '../../rangeSelectorTsx';
 
 interface EnhanceProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
@@ -67,26 +68,14 @@ function Enhance(props: EnhanceProps) {
     destroy();
   });
 
-  function handleFilterChange(e: InputEvent) {
-    if(e.target === null) {
-      return;
-    }
-
-    const input = e.target as HTMLInputElement;
-    const filterName = input.dataset.name as keyof CanvasLayer['state']['filters'];
-    const newValue = Number.parseInt(input.value);
-
-    if(filterName === undefined) {
-      return;
-    }
-
+  function handleFilterChange(value: number, filterName: keyof CanvasLayer['state']['filters']) {
     const signalSetter = effects.find(([effect]) => effect === filterName)?.[4] as (value: number) => void;
 
-    signalSetter(newValue);
+    signalSetter(value);
 
     const layer = props.layerMaganer().getBaseCanvasLayer();
 
-    layer.applyFilter(filterName, newValue);
+    layer.applyFilter(filterName, value);
   };
 
   return (
@@ -100,15 +89,15 @@ function Enhance(props: EnhanceProps) {
                 <div class="adjust__name-and-value-value">{ signal() }</div>
               </div>
               <div class="adjust__line">
-                <input
-                  type="range"
-                  data-name={effect.toString()}
-                  id={effect.toString()}
-                  min={min}
-                  max={max}
-                  value={signal()}
-                  onInput={handleFilterChange}
-                />
+                { RangeSelectorTsx({
+                  value: signal(),
+                  step: 1,
+                  min,
+                  max,
+                  onScrub(value) {
+                    handleFilterChange(value, effect.toString() as keyof CanvasLayer['state']['filters']);
+                  }
+                }) }
               </div>
             </div>
           )}
