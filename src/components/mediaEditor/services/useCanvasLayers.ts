@@ -187,7 +187,6 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     const currentWidth = originalImageOffscreenCanvas.width;
     const currentHeight = originalImageOffscreenCanvas.height;
 
-    // Create a new canvas to hold the rotated image
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = currentHeight;
     tempCanvas.height = currentWidth;
@@ -197,19 +196,16 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
       throw new Error('Could not get temporary context');
     }
 
-    // Rotate the new canvas context
     tempContext.translate(tempCanvas.width / 2, tempCanvas.height / 2);
     tempContext.rotate(90 * Math.PI / 180);
     tempContext.translate(-tempCanvas.height / 2, -tempCanvas.width / 2);
     tempContext.drawImage(originalImageOffscreenCanvas, 0, 0, currentWidth, currentHeight);
 
-    // Clear the original offscreen context and draw the rotated image back onto it
     originalImageOffscreenContext.clearRect(0, 0, currentWidth, currentHeight);
     originalImageOffscreenCanvas.width = tempCanvas.width;
     originalImageOffscreenCanvas.height = tempCanvas.height;
     originalImageOffscreenContext.drawImage(tempCanvas, 0, 0);
 
-    // Sync the visible canvas with the updated offscreen canvas
     syncVisibleCanvas(layer);
   }
 
@@ -330,10 +326,8 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
   }
 
   function copyImageData(imageData: ImageData): ImageData {
-    // Create a new ImageData object with the same dimensions
     const copy = new ImageData(imageData.width, imageData.height);
 
-    // Copy the pixel data from the original ImageData to the new ImageData
     copy.data.set(imageData.data);
 
     return copy;
@@ -348,7 +342,6 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
 
     layer.state.filters[filterName] = value;
 
-    // const dataToAddFilters = copyImageData(layer.imageDataWithoutFilters);
     const dataToAddFilters = copyImageData(layer.imageData);
 
     restoreFilters(dataToAddFilters, filtersToAdd);
@@ -375,21 +368,6 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     visibleCanvasContext.clearRect(0, 0, visibleCanvas.width, visibleCanvas.height);
     visibleCanvasContext.drawImage(originalImageOffscreenCanvas, 0, 0, originalImageOffscreenCanvas.width, originalImageOffscreenCanvas.height, 0, 0, scaledWidth, scaledHeight);
   };
-
-  // function syncVisibleCanvas(layer: CanvasLayer): void {
-  //   const { visibleCanvas, visibleCanvasContext, creationParams, originalImageOffscreenCanvas } = layer;
-  //   const originalImage = creationParams.image;
-
-  //   const scale = Math.min(visibleCanvas.width / originalImage.width, visibleCanvas.height / originalImage.height);
-  //   const scaledWidth = originalImage.width * scale;
-  //   const scaledHeight = originalImage.height * scale;
-
-  //   // visibleCanvas.width = scaledWidth;
-  //   // visibleCanvas.height = scaledHeight;
-
-  //   visibleCanvasContext.clearRect(0, 0, visibleCanvas.width, visibleCanvas.height);
-  //   visibleCanvasContext.drawImage(originalImageOffscreenCanvas, 0, 0, originalImage.width, originalImage.height, 0, 0, scaledWidth, scaledHeight);
-  // };
 
   function removeCanvasLayer(layer: CanvasLayer): void {
     layersParent.removeChild(layer.visibleCanvas);
@@ -526,7 +504,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
   }
 
   async function exportBoxesToCanvas(layer: DivLayer, width: number, height: number): Promise<HTMLCanvasElement> {
-    const scaleFactor = 10;
+    const scaleFactor = 3;
 
     const highResCanvas = document.createElement('canvas');
     const highResContext = highResCanvas.getContext('2d');

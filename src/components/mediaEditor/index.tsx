@@ -13,11 +13,41 @@ import Icon from '../icon';
 import {Middleware} from '../../helpers/middleware';
 import Icons from '../../icons';
 import ripple from '../ripple';
+import {ButtonIconTsx} from '../buttonIconTsx';
+import canvasToFile from '../../helpers/canvas/canvasToFile';
 
+
+/**
+ * Now working
+ *
+ * @todo add stikers
+ * @todo color picker
+ * @todo change fonts
+ * @todo add undo/redo
+ * @todo saving rotated texts
+ *
+ * Working but not ideal
+ *
+ * @todo erase tool not working
+ *
+ * @todo increase border-radius of text along with scale up
+ * @todo second rotate90 decreases width
+ * @todo default text background is black, but need a white
+ * @todo fix hightlighs and shadows filters
+ * @todo fix erasing effect of the Blur Brush
+ * @todo adjusting filters resets a crop
+ * @todo improve animation after crop
+ * @todo preselect text color is not working
+ * @todo long text wrapping
+ * @todo crop on Enter
+ *
+ */
 function MediaEditor(params: {
   file: File,
   width: number,
   height: number,
+  onClose: () => void,
+  onSave: (file: File) => void
 }, {middleware}: { middleware: Middleware }) {
   const [originalImage, setOriginalImage] = createSignal<HTMLImageElement>();
   const [layerManager, setLayerManager] = createSignal<ReturnType<typeof useCanvasLayers>>();
@@ -80,7 +110,6 @@ function MediaEditor(params: {
       return;
     }
 
-    // Resize canvas to match the new image dimensions
     canvasWrapper.style.width = `${width}px`;
     canvasWrapper.style.height = `${height}px`;
     if(topOffset !== undefined) {
@@ -108,10 +137,9 @@ function MediaEditor(params: {
 
     function animate(time: number) {
       const elapsed = time - startTime;
-      const t = Math.min(elapsed / duration, 1); // t is in the range [0, 1]
+      const t = Math.min(elapsed / duration, 1);
 
       const easedT = bezier(t);
-      // const easedT = easeOutQuad(t); // Apply easing
 
       const width = lerp(initialWidth, newWidth, easedT);
       const height = lerp(initialHeight, newHeight, easedT);
@@ -223,13 +251,12 @@ function MediaEditor(params: {
   async function saveResult() {
     const result = await layerManager()!.exportLayers();
 
-    // const link = document.createElement('a');
-    // link.download = 'image.png';
-    // link.href = result.toDataURL('image/png');
-    // link.click();
+    const file = canvasToFile(result, 'image/png');
 
-    document.body.innerHTML = '';
-    document.body.appendChild(result);
+    params.onSave(file);
+
+    // document.body.innerHTML = '';
+    // document.body.appendChild(result);
   }
 
   function createTab(icon: keyof typeof Icons, index: number) {
@@ -262,14 +289,31 @@ function MediaEditor(params: {
               </div>
               <div class="navbar__undo">
                 <div class="navbar__undo-undo">
-                  { Icon('undo') }
+                  {
+                    ButtonIconTsx({
+                      icon: 'undo',
+                      onClick: () => {}
+                    })
+                  }
                 </div>
                 <div class="navbar__undo-redo">
-                  { Icon('redo') }
+                  {
+                    ButtonIconTsx({
+                      icon: 'redo',
+                      onClick: () => {}
+                    })
+                  }
                 </div>
               </div>
-              <div class="navbar__cross">
-                { Icon('close') }
+              <div
+                class="navbar__cross"
+              >
+                {
+                  ButtonIconTsx({
+                    icon: 'close',
+                    onClick: () => params.onClose()
+                  })
+                }
               </div>
             </div>
             <div class="tabs">

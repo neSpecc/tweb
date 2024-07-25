@@ -1204,6 +1204,9 @@ export default class PopupNewMedia extends PopupElement {
     const controls = document.createElement('div');
     controls.classList.add('popup-photo-actions');
 
+
+    const fileIndex = this.files.indexOf(params.sendFileParams.file);
+
     const buttons = [
       {
         icon: 'enhance',
@@ -1212,7 +1215,11 @@ export default class PopupNewMedia extends PopupElement {
           PopupElement.createPopup(PopupMediaEditor, {
             file: params.sendFileParams.file,
             width: params.sendFileParams.width,
-            height: params.sendFileParams.height
+            height: params.sendFileParams.height,
+            onSave: (file: File) => {
+              this.files[fileIndex] = file;
+              this.attachFiles();
+            }
           }).show();
         }
       }

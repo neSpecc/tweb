@@ -1003,8 +1003,8 @@ export function useDraggableBox() {
     canvas.width = box.position.width * scaleFactor;
     canvas.height = box.position.height * scaleFactor;
 
-    // ctx.fillStyle = 'rgba(255, 255, 255, .2)';
-    // ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'rgba(255, 255, 255, .2)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const boxContent = box.el.querySelector(`.${CSS.draggableBoxContent}`) as HTMLElement;
     const boxText = box.el.querySelector('.text-box') as HTMLElement;
@@ -1043,6 +1043,12 @@ export function useDraggableBox() {
         return;
       }
 
+      const lineOffsetFromBox = line.offsetTop
+
+      console.log('box size', box.position.width, box.position.height);
+      console.log('line %o offset %o', text, lineOffsetFromBox, line, box.el);
+
+
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
       ctx.fillStyle = color;
 
@@ -1053,6 +1059,14 @@ export function useDraggableBox() {
       const lineHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
 
       yOffset += lineHeight;
+
+      const uppercaseLettersPattern = /\p{Lu}/u;
+
+      console.log('textMetrics', textMetrics);
+
+      if(uppercaseLettersPattern.test(text)) {
+        yOffset -= fontSize * 0.09;
+      }
 
       let textLeftOffset = boxPaddingLeft + linePaddingLeft;
       const textTopOffset = yOffset + linePaddingTop + textLineHeightSpaces;

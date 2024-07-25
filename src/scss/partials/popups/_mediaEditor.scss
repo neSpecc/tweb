@@ -90,6 +90,7 @@
   display: flex;
   padding-left: 72px;
   position: relative;
+  height: 56px;
 }
 
 .navbar__title {
@@ -98,12 +99,13 @@
   font-size: 20px;
   flex-grow: 1;
   color: var(--color-primary);
+  line-height: 24px;
 }
 
 .navbar__undo {
   display: flex;
-  gap: 24px;
-  padding: 16px;
+  gap: 8px;
+  padding: 8px;
 }
 
 .navbar__undo-undo,
@@ -116,8 +118,8 @@
 
 .navbar__cross {
   position: absolute;
-  left: 16px;
-  top: 16px;
+  left: 8px;
+  top: 8px;
 }
 
 .media-editor .tabs {
@@ -183,7 +185,7 @@
   overflow-y: auto;
 
   & > div {
-    animation: tab-in 300ms ease-out;
+    animation: tab-in 250ms ease-in;
   }
 }
 

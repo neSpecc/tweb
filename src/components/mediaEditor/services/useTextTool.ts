@@ -84,27 +84,6 @@ export function useTextTool(params: UseTextToolParams) {
     params.onFontSizeChange?.(newFontSize);
   }
 
-  // function wrapTextInBackgroundSpan(editableDiv: HTMLDivElement) {
-  //   console.log(editableDiv.textContent, editableDiv.textContent!.split('\n'));
-
-  //   // const content = editableDiv.textContent!.split('\n').map((line) => {
-  //   //   return `<span class="background-span">${line}</span>`;
-  //   // }).join('\n');
-  //   const childNodes = Array.from(editableDiv.childNodes);
-  //   childNodes.forEach((node) => {
-  //     if (node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== '') {
-  //       const span = document.createElement('span');
-  //       span.className = 'background-span';
-  //       span.textContent = node.textContent;
-  //       editableDiv.replaceChild(span, node);
-  //     }
-  //     else if (node.nodeType === Node.ELEMENT_NODE && node.nodeName === 'BR') {
-  //       // Do nothing for <br> elements, allow them to be preserved
-  //     }
-  //   });
-  //   // editableDiv.innerHTML = content;
-  // }
-
   function focusEditableDiv(editableDiv: HTMLDivElement) {
     const lineWrapper = editableDiv.querySelectorAll(`.${CSS.textBoxLineWrapper}`);
 

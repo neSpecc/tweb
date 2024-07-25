@@ -7,6 +7,7 @@ export default class PopupMediaEditor extends PopupElement {
     file: File,
     width: number,
     height: number,
+    onSave: (file: File) => void
   }
   ) {
     super(
@@ -20,7 +21,22 @@ export default class PopupMediaEditor extends PopupElement {
       }
     );
 
-    this.body.append(MediaEditor(params, {
+    const onClose = () => {
+      this.hide();
+    }
+
+    const onSave = (file: File) => {
+      this.hide();
+      params.onSave(file);
+    }
+
+    this.body.append(MediaEditor({
+      file: params.file,
+      width: params.width,
+      height: params.height,
+      onClose,
+      onSave
+    }, {
       middleware: this.middlewareHelper.get()
     }) as Node)
   }

@@ -1,5 +1,5 @@
 self.addEventListener('message', (event) => {
-  const { command, payload } = event.data;
+  const {command, payload} = event.data;
 
   /**
    * @private
@@ -15,16 +15,16 @@ self.addEventListener('message', (event) => {
     /**
      * Horizontal pass
      */
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
+    for(let y = 0; y < height; y++) {
+      for(let x = 0; x < width; x++) {
         let r = 0;
         let g = 0;
         let b = 0;
         let a = 0;
         let weightSum = 0;
-        for (let i = -Math.floor(kernelSize / 2); i <= Math.floor(kernelSize / 2); i++) {
+        for(let i = -Math.floor(kernelSize / 2); i <= Math.floor(kernelSize / 2); i++) {
           const nx = x + i;
-          if (nx >= 0 && nx < width) {
+          if(nx >= 0 && nx < width) {
             const weight = kernel[i + Math.floor(kernelSize / 2)];
             const offset = (y * width + nx) * 4;
             r += pixels[offset] * weight;
@@ -48,16 +48,16 @@ self.addEventListener('message', (event) => {
     const tempImageData = new ImageData(new Uint8ClampedArray(newPixels), width, height);
     const tempPixels = tempImageData.data;
 
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
+    for(let y = 0; y < height; y++) {
+      for(let x = 0; x < width; x++) {
         let r = 0;
         let g = 0;
         let b = 0;
         let a = 0;
         let weightSum = 0;
-        for (let i = -Math.floor(kernelSize / 2); i <= Math.floor(kernelSize / 2); i++) {
+        for(let i = -Math.floor(kernelSize / 2); i <= Math.floor(kernelSize / 2); i++) {
           const ny = y + i;
-          if (ny >= 0 && ny < height) {
+          if(ny >= 0 && ny < height) {
             const weight = kernel[i + Math.floor(kernelSize / 2)];
             const offset = (ny * width + x) * 4;
             r += tempPixels[offset] * weight;
@@ -85,32 +85,32 @@ self.addEventListener('message', (event) => {
     const kernel = [];
     const mean = size / 2;
     let sum = 0;
-    for (let x = 0; x < size; x++) {
+    for(let x = 0; x < size; x++) {
       kernel[x] = Math.exp(-0.5 * ((x - mean) / sigma) ** 2);
       sum += kernel[x];
     }
-    for (let x = 0; x < size; x++) {
+    for(let x = 0; x < size; x++) {
       kernel[x] /= sum;
     }
     return kernel;
   }
 
-  switch (command) {
+  switch(command) {
     case 'blur': {
       const result = gaussianBlur(payload.image, payload.width, payload.height, payload.radius);
 
       postMessage({
         command: 'blur',
         payload: {
-          image: result,
-        },
+          image: result
+        }
       }, [result.data.buffer]);
       break;
     }
   }
 });
 
-self.onerror = function (errorEvent) {
+self.onerror = function(errorEvent) {
   console.error('Worker error:', errorEvent);
-  postMessage({ error: errorEvent.message });
+  postMessage({error: errorEvent.message});
 };

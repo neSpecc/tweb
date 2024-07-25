@@ -1,5 +1,5 @@
 self.addEventListener('message', (event) => {
-  const { filters, imageData, width, height, canvasId } = event.data;
+  const {filters, imageData, width, height, canvasId} = event.data;
 
   /**
    * Manipulate the brightness of the image
@@ -9,7 +9,7 @@ self.addEventListener('message', (event) => {
   function brightness(data, brightness) {
     const factor = (brightness + 100) / 100;
 
-    for (let i = 0; i < data.length; i += 4) {
+    for(let i = 0; i < data.length; i += 4) {
       data[i] = Math.min(255, Math.max(0, data[i] * factor));
       data[i + 1] = Math.min(255, Math.max(0, data[i + 1] * factor));
       data[i + 2] = Math.min(255, Math.max(0, data[i + 2] * factor));
@@ -24,7 +24,7 @@ self.addEventListener('message', (event) => {
   function contrast(data, contrast) {
     const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
 
-    for (let i = 0; i < data.length; i += 4) {
+    for(let i = 0; i < data.length; i += 4) {
       data[i] = Math.min(255, Math.max(0, factor * (data[i] - 128) + 128));
       data[i + 1] = Math.min(255, Math.max(0, factor * (data[i + 1] - 128) + 128));
       data[i + 2] = Math.min(255, Math.max(0, factor * (data[i + 2] - 128) + 128));
@@ -39,7 +39,7 @@ self.addEventListener('message', (event) => {
   function saturation(data, saturation) {
     const factor = 1 + saturation / 100;
 
-    for (let i = 0; i < data.length; i += 4) {
+    for(let i = 0; i < data.length; i += 4) {
       const r = data[i];
       const g = data[i + 1];
       const b = data[i + 2];
@@ -59,7 +59,7 @@ self.addEventListener('message', (event) => {
   function warmth(data, warmth) {
     const factor = warmth / 100;
 
-    for (let i = 0; i < data.length; i += 4) {
+    for(let i = 0; i < data.length; i += 4) {
       data[i] = Math.min(255, Math.max(0, data[i] + factor * 50)); // Red
       data[i + 2] = Math.min(255, Math.max(0, data[i + 2] - factor * 50)); // Blue
     }
@@ -69,7 +69,7 @@ self.addEventListener('message', (event) => {
     const normalizedFade = fade / 100;
     const targetSepiaIntensity = normalizedFade * 0.3;
 
-    for (let i = 0; i < data.length; i += 4) {
+    for(let i = 0; i < data.length; i += 4) {
       const r = data[i];
       const g = data[i + 1];
       const b = data[i + 2];
@@ -99,17 +99,17 @@ self.addEventListener('message', (event) => {
   function highlights(data, highlights) {
     const threshold = 255 * (1 - Math.abs(highlights / 100));
 
-    for (let i = 0; i < data.length; i += 4) {
+    for(let i = 0; i < data.length; i += 4) {
       const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
 
-      if (highlights >= 0 && brightness > threshold) {
+      if(highlights >= 0 && brightness > threshold) {
       // Enhance highlights
         const factor = 1 + Math.abs(highlights / 100);
         data[i] = Math.min(255, data[i] * factor); // Red
         data[i + 1] = Math.min(255, data[i + 1] * factor); // Green
         data[i + 2] = Math.min(255, data[i + 2] * factor); // Blue
       }
-      else if (highlights < 0) {
+      else if(highlights < 0) {
       // Reduce non-highlights
         const factor = 1 - Math.abs(highlights / 100);
         data[i] *= factor; // Red
@@ -127,32 +127,32 @@ self.addEventListener('message', (event) => {
   function shadows(data, shadows) {
     const threshold = 255 * (Math.abs(shadows / 100));
 
-    for (let i = 0; i < data.length; i += 4) {
+    for(let i = 0; i < data.length; i += 4) {
       const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
 
-      if (shadows > 0 && brightness < threshold) {
+      if(shadows > 0 && brightness < threshold) {
       // Enhance shadows
         const factor = 1 + shadows / 100;
         data[i] = Math.max(0, data[i] * factor); // Red
         data[i + 1] = Math.max(0, data[i + 1] * factor); // Green
         data[i + 2] = Math.max(0, data[i + 2] * factor); // Blue
       }
-      else if (shadows <= 0 && brightness < threshold) {
+      else if(shadows <= 0 && brightness < threshold) {
       // Do nothing for non-shadow pixels when shadows <= 0
       }
     // else, leave pixels unchanged (brightness >= threshold)
     }
   }
 
-  function vignette(data, vignette, { width, height }) {
+  function vignette(data, vignette, {width, height}) {
     const centerX = width / 2;
     const centerY = height / 2;
     const maxDistance = Math.sqrt(centerX * centerX + centerY * centerY);
 
     const vignetteIntensityValue = vignette / 100;
 
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
+    for(let y = 0; y < height; y++) {
+      for(let x = 0; x < width; x++) {
         const dx = centerX - x;
         const dy = centerY - y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -176,7 +176,7 @@ self.addEventListener('message', (event) => {
     const grainScale = 0.15;
     const intensity = grain / 100 * grainScale;
 
-    for (let i = 0; i < data.length; i += 4) {
+    for(let i = 0; i < data.length; i += 4) {
       /**
        * Random noise
        */
@@ -188,7 +188,7 @@ self.addEventListener('message', (event) => {
     }
   }
 
-  function sharpen(data, sharpen, { width, height }) {
+  function sharpen(data, sharpen, {width, height}) {
     const intensity = sharpen / 100;
 
     const weights = [
@@ -200,7 +200,7 @@ self.addEventListener('message', (event) => {
       -1,
       0,
       -1,
-      0,
+      0
     ];
 
     const side = Math.round(Math.sqrt(weights.length));
@@ -208,19 +208,19 @@ self.addEventListener('message', (event) => {
 
     const tmpData = new Uint8ClampedArray(data.length);
 
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
+    for(let y = 0; y < height; y++) {
+      for(let x = 0; x < width; x++) {
         const offset = (y * width + x) * 4;
         let r = 0;
         let g = 0;
         let b = 0;
 
-        for (let cy = 0; cy < side; cy++) {
-          for (let cx = 0; cx < side; cx++) {
+        for(let cy = 0; cy < side; cy++) {
+          for(let cx = 0; cx < side; cx++) {
             const scy = y + cy - halfSide;
             const scx = x + cx - halfSide;
 
-            if (scy >= 0 && scy < height && scx >= 0 && scx < width) {
+            if(scy >= 0 && scy < height && scx >= 0 && scx < width) {
               const srcOffset = (scy * width + scx) * 4;
               const wt = weights[cy * side + cx];
               r += data[srcOffset] * wt;
@@ -237,7 +237,7 @@ self.addEventListener('message', (event) => {
       }
     }
 
-    for (let i = 0; i < data.length; i++) {
+    for(let i = 0; i < data.length; i++) {
       data[i] = tmpData[i];
     }
   }
@@ -266,23 +266,21 @@ self.addEventListener('message', (event) => {
     vignette,
     grain,
     sharpen,
-    enhance,
+    enhance
   };
 
   const data = new Uint8ClampedArray(imageData);
 
-  for (const [filter, value] of Object.entries(filters)) {
-    if (filterProcessors[filter]) {
-      filterProcessors[filter](data, value, { width, height });
+  for(const [filter, value] of Object.entries(filters)) {
+    if(filterProcessors[filter]) {
+      filterProcessors[filter](data, value, {width, height});
     }
   }
 
-  postMessage({ imageData: data.buffer, width, height, canvasId }, [data.buffer]);
+  postMessage({imageData: data.buffer, width, height, canvasId}, [data.buffer]);
 });
 
-self.onerror = function (errorEvent) {
-  // Handle the error here
+self.onerror = function(errorEvent) {
   console.error('Worker error:', errorEvent);
-  // Optionally, post a message back to the main thread
-  postMessage({ error: errorEvent.message });
+  postMessage({error: errorEvent.message});
 };
