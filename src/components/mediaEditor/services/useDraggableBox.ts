@@ -1035,7 +1035,7 @@ export function useDraggableBox() {
       ctx.drawImage(img, 0, boxPaddingTop / scaleFactor, canvas.width, canvas.height);
     }
 
-    let yOffset = boxPaddingTop + fontSize * 0.15;
+    // let yOffset = boxPaddingTop + fontSize * 0.15;
 
     boxTextLines.forEach((line) => {
       const text = line.textContent;
@@ -1043,11 +1043,7 @@ export function useDraggableBox() {
         return;
       }
 
-      const lineOffsetFromBox = line.offsetTop
-
-      console.log('box size', box.position.width, box.position.height);
-      console.log('line %o offset %o', text, lineOffsetFromBox, line, box.el);
-
+      const lineOffsetFromBox = line.offsetTop * scaleFactor;
 
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
       ctx.fillStyle = color;
@@ -1056,20 +1052,19 @@ export function useDraggableBox() {
       ctx.shadowBlur = 1 * scaleFactor;
 
       const textMetrics = ctx.measureText(text);
-      const lineHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
+      const textHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
+      console.log('textHeight', textHeight);
 
-      yOffset += lineHeight;
+      // yOffset += lineHeight;
 
-      const uppercaseLettersPattern = /\p{Lu}/u;
+      // const uppercaseLettersPattern = /\p{Lu}/u;
 
-      console.log('textMetrics', textMetrics);
-
-      if(uppercaseLettersPattern.test(text)) {
-        yOffset -= fontSize * 0.09;
-      }
+      // if(uppercaseLettersPattern.test(text)) {
+      //   yOffset -= fontSize * 0.09;
+      // }
 
       let textLeftOffset = boxPaddingLeft + linePaddingLeft;
-      const textTopOffset = yOffset + linePaddingTop + textLineHeightSpaces;
+      const textTopOffset = lineOffsetFromBox + linePaddingTop + textHeight;
 
       if(alignment === 'right') {
         textLeftOffset = canvas.width - boxPaddingLeft - linePaddingLeft - textMetrics.width;
@@ -1086,7 +1081,7 @@ export function useDraggableBox() {
 
       ctx.fillText(text, textLeftOffset, textTopOffset);
 
-      yOffset += linePaddingTop * 2 + fontSize * 0.3;
+      // yOffset += linePaddingTop * 2 + fontSize * 0.3;
     });
 
     return canvas;
