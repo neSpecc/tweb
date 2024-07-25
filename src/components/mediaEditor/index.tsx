@@ -281,7 +281,7 @@ function MediaEditor(params: {
             </div>
 
           </div>
-          <div class="settings">
+          <div class="media-editor-settings">
             <Switch>
               <Match when={tab() === 0}>
                 <Enhance

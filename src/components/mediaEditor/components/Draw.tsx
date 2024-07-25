@@ -6,6 +6,7 @@ import {useDrawing} from '../services/useDrawing';
 import ColorSelector from './ColorSelector';
 import ToolIcon from './ToolIcon';
 import ripple from '../../ripple';
+import {RangeSelectorTsx} from '../../rangeSelectorTsx';
 
 interface BrushProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
@@ -120,25 +121,36 @@ export default function Brush(props: BrushProps) {
         <ColorSelector
           onSelect={selectColor}
         />
-        <div class="pe-settings__section-header">
-          Size
+        <div class="pe-settings__section">
+          <div class="pe-settings__section-header pe-settings__section-header--slider">
+            Size
+
+            <div>
+              {size()}
+            </div>
+          </div>
+          <div class="pe-settings__slider media-editor-slider">
+            { RangeSelectorTsx({
+              value: size(),
+              step: 1,
+              min: 1,
+              max: 30,
+              onScrub(value) {
+                selectBrushSize(value);
+              }
+            }) }
+          </div>
         </div>
-        <input
-          type="range"
-          class="pe-draw__size"
-          min="1"
-          max="30"
-          step="1"
-          value={size()}
-          onInput={(e: InputEvent) => selectBrushSize(Number.parseInt((e.target as HTMLInputElement).value))}
-        />
+
         <div class="pe-settings__section">
           <div class="pe-settings__section-header">
             Tool
           </div>
-          {tools.map((toolTitle, index) => (
-            creaToolRow(toolTitle, index)
-          ))}
+          <div>
+            {tools.map((toolTitle, index) => (
+              creaToolRow(toolTitle, index)
+            ))}
+          </div>
         </div>
       </div>
     </div>

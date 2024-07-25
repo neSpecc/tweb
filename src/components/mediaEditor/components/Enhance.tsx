@@ -86,9 +86,17 @@ function Enhance(props: EnhanceProps) {
             <div class="adjust">
               <div class="adjust__name-and-value">
                 {name}
-                <div class="adjust__name-and-value-value">{ signal() }</div>
+                <div
+                  classList={
+                    {
+                      'adjust__name-and-value-value': true,
+                      'adjust__name-and-value-value--zero': signal() === 0
+                    }
+                  }>
+                  { signal() }
+                </div>
               </div>
-              <div class="adjust__line">
+              <div class="adjust__line media-editor-slider">
                 { RangeSelectorTsx({
                   value: signal(),
                   step: 1,

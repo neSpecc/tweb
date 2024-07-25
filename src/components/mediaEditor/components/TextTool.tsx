@@ -55,6 +55,8 @@ export default function TextTool(props: TextToolProps) {
       setTextLayer(layer);
     }
 
+    textLayer().div.style.pointerEvents = 'auto';
+
     const tool = useTextTool({
       layer,
       onFontSizeChange: (value) => {
@@ -68,6 +70,7 @@ export default function TextTool(props: TextToolProps) {
   }
 
   function destroy() {
+    textLayer().div.style.pointerEvents = 'none';
     textLayer().deactivateAllBoxes();
     textTool()?.destroy();
   }
@@ -166,7 +169,7 @@ export default function TextTool(props: TextToolProps) {
         </div>
       </div>
 
-      <div class="pe-settings__slider">
+      <div class="pe-settings__slider media-editor-slider">
         { RangeSelectorTsx({
           value: fontSize(),
           step: 1,
