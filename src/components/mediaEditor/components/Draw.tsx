@@ -1,8 +1,8 @@
-import type { Accessor } from 'solid-js';
-import { createSignal, onCleanup, onMount } from 'solid-js';
-import type { useCanvasLayers } from '../services/useCanvasLayers';
-import type { DrawingTool } from '../services/useDrawing';
-import { useDrawing } from '../services/useDrawing';
+import type {Accessor} from 'solid-js';
+import {createSignal, onCleanup, onMount} from 'solid-js';
+import type {useCanvasLayers} from '../services/useCanvasLayers';
+import type {DrawingTool} from '../services/useDrawing';
+import {useDrawing} from '../services/useDrawing';
 import ColorSelector from './ColorSelector';
 import ToolIcon from './ToolIcon';
 
@@ -23,7 +23,7 @@ export default function Brush(props: BrushProps) {
     'brush',
     'neon',
     'blur',
-    'eraser',
+    'eraser'
   ];
 
   function init() {
@@ -35,12 +35,12 @@ export default function Brush(props: BrushProps) {
       visibleCanvas: layer.visibleCanvas,
       onDraw() {
         layer.sync();
-      },
+      }
     });
 
     setDrawing(drawingService);
 
-    if (!layer.imageData) {
+    if(!layer.imageData) {
       throw new Error('Canvas image data is not set');
     }
 
@@ -51,7 +51,7 @@ export default function Brush(props: BrushProps) {
   function destroy() {
     const drawingService = drawing();
 
-    if (!drawingService) {
+    if(!drawingService) {
       return;
     }
 
@@ -127,11 +127,11 @@ export default function Brush(props: BrushProps) {
             <div
               classList={{
                 'pe-settings-row': true,
-                'pe-settings-row--selected': tool() === index,
+                'pe-settings-row--selected': tool() === index
               }}
               onClick={_ => selectTool(index)}
               style={{
-                '--color': tool() === index ? colorHex() : undefined,
+                '--color': tool() === index ? colorHex() : undefined
               }}
             >
               <div class="pe-settings-row__icon">

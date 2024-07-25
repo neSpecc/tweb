@@ -1,4 +1,4 @@
-import { createSignal } from 'solid-js';
+import {createSignal} from 'solid-js';
 
 interface ColorSelectorProps {
   onSelect: (color: string) => void;
@@ -16,7 +16,7 @@ export default function ColorSelector(props: ColorSelectorProps) {
     '#62E5E0',
     '#0A84FF',
     '#BD5CF3',
-    '#000000',
+    '#000000'
   ];
 
   function selectColor(index: number) {
@@ -30,12 +30,12 @@ export default function ColorSelector(props: ColorSelectorProps) {
         <div
           classList={{
             'pe-color-selector__item': true,
-            'pe-color-selector__item--selected': color() === index,
+            'pe-color-selector__item--selected': color() === index
           }}
           onClick={_ => selectColor(index)}
         >
-          <div class="pe-color-selector__item-icon" style={{ 'background-color': colorHex }} />
-          <div class="pe-color-selector__item-glow" style={{ 'background-color': colorHex }} />
+          <div class="pe-color-selector__item-icon" style={{'background-color': colorHex}} />
+          <div class="pe-color-selector__item-glow" style={{'background-color': colorHex}} />
         </div>
       ))}
     </div>

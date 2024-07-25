@@ -37,7 +37,7 @@ export function useTextTool(params: UseTextToolParams) {
 
   function updateBoxParam(box: DraggableBox, newParams: Partial<TextareaState>): void {
     state.set(box, {
-      ...state.get(box) as TextareaState ?? {},
+      ...state.get(box),
       ...newParams
     });
 

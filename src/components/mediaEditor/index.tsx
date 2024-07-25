@@ -253,7 +253,7 @@ function MediaEditor(params: {
                 </div>
               </div>
               <div class="navbar__cross">
-                { Icon('cross') }
+                { Icon('close') }
               </div>
             </div>
             <div class="tabs">

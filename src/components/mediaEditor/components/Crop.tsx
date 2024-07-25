@@ -1,10 +1,9 @@
-import type { Accessor } from 'solid-js';
-import { For, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
-import type { DivLayer, useCanvasLayers } from '../services/useCanvasLayers';
-import type { LeftZoneControls } from '../services/leftZoneControls';
-import type { DraggableBox } from '../services/useDraggableBox';
-import { debounce } from '../utils/debounce';
-import Icon from '../utils/icon';
+import type {Accessor} from 'solid-js';
+import {For, createMemo, createSignal, onCleanup, onMount} from 'solid-js';
+import type {DivLayer, useCanvasLayers} from '../services/useCanvasLayers';
+import type {LeftZoneControls} from '../services/leftZoneControls';
+import type {DraggableBox} from '../services/useDraggableBox';
+import Icon from '../../icon';
 
 interface CropProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
@@ -45,37 +44,37 @@ export default function Crop(props: CropProps) {
 
   const ratios: Ratio[][] = [
     [
-      { title: 'Free', icon: Icon('ratio-free') },
+      {title: 'Free', icon: Icon('ratio_free')}
     ],
     [
-      { title: 'Original', icon: Icon('imageoriginal') },
+      {title: 'Original', icon: Icon('imageoriginal')}
     ],
     [
-      { title: 'Square', icon: Icon('ratio-square') },
+      {title: 'Square', icon: Icon('ratio_square')}
     ],
     [
-      { title: '3:2', icon: Icon('ratio-3-2') },
-      { title: '2:3', icon: Icon('ratio-3-2', 'icon-rotated') },
+      {title: '3:2', icon: Icon('ratio_3_2')},
+      {title: '2:3', icon: Icon('ratio_3_2', 'icon-rotated')}
     ],
     [
-      { title: '4:3', icon: Icon('ratio-4-3') },
-      { title: '3:4', icon: Icon('ratio-4-3', 'icon-rotated') },
+      {title: '4:3', icon: Icon('ratio_4_3')},
+      {title: '3:4', icon: Icon('ratio_4_3', 'icon-rotated')}
     ],
     [
-      { title: '5:4', icon: Icon('ratio-5-4') },
-      { title: '4:5', icon: Icon('ratio-5-4', 'icon-rotated') },
+      {title: '5:4', icon: Icon('ratio_5_4')},
+      {title: '4:5', icon: Icon('ratio_5_4', 'icon-rotated')}
     ],
     [
-      { title: '7:5', icon: Icon('ratio-7-6') },
-      { title: '5:7', icon: Icon('ratio-7-6', 'icon-rotated') },
+      {title: '7:5', icon: Icon('ratio_7_6')},
+      {title: '5:7', icon: Icon('ratio_7_6', 'icon-rotated')}
     ],
     [
-      { title: '16:9', icon: Icon('ratio-16-9') },
-      { title: '9:16', icon: Icon('ratio-16-9', 'icon-rotated') },
-    ],
+      {title: '16:9', icon: Icon('ratio_16_9')},
+      {title: '9:16', icon: Icon('ratio_16_9', 'icon-rotated')}
+    ]
   ];
 
-  const angles = Array.from({ length: 25 }, (_, i) => -180 + i * 15);
+  const angles = Array.from({length: 25}, (_, i) => -180 + i * 15);
 
   const nearestAngleIndex = createMemo(() => {
     const currentAngle = angle();
@@ -92,7 +91,7 @@ export default function Crop(props: CropProps) {
             <div
               classList={{
                 current: nearestAngleIndex() === index(),
-                zero: angleValue === 0,
+                zero: angleValue === 0
               }}
             >
               {angleValue}
@@ -143,7 +142,7 @@ export default function Crop(props: CropProps) {
     destroy();
     const imageLayer = props.layerMaganer().getBaseCanvasLayer();
 
-    if (!imageLayer) {
+    if(!imageLayer) {
       return;
     }
 
@@ -153,7 +152,7 @@ export default function Crop(props: CropProps) {
   function flip() {
     const imageLayer = props.layerMaganer().getBaseCanvasLayer();
 
-    if (!imageLayer) {
+    if(!imageLayer) {
       return;
     }
 
@@ -169,39 +168,39 @@ export default function Crop(props: CropProps) {
     const layerRect = cropLayer()!.div.getBoundingClientRect();
     const ratioTitle = aspectRatio();
 
-    switch (ratioTitle) {
+    switch(ratioTitle) {
       case 'Free':
-        return { width: layerRect.width, height: layerRect.height };
+        return {width: layerRect.width, height: layerRect.height};
       case 'Original':
-        return { width: layerRect.width, height: layerRect.height };
+        return {width: layerRect.width, height: layerRect.height};
       case 'Square': {
         const minSide = Math.min(layerRect.width, layerRect.height);
 
-        return { width: minSide, height: minSide };
+        return {width: minSide, height: minSide};
       }
       default: {
         const [w, h] = ratioTitle.split(':').map(Number);
         const ratio = w / h;
 
-        if (w > h) {
+        if(w > h) {
           const width = layerRect.width;
           const height = width / ratio;
 
-          if (height > layerRect.height) {
-            return { width: layerRect.height * ratio, height: layerRect.height };
+          if(height > layerRect.height) {
+            return {width: layerRect.height * ratio, height: layerRect.height};
           }
 
-          return { width, height };
+          return {width, height};
         }
         else {
           const height = layerRect.height;
           const width = height * ratio;
 
-          if (width > layerRect.width) {
-            return { width: layerRect.width, height: layerRect.width / ratio };
+          if(width > layerRect.width) {
+            return {width: layerRect.width, height: layerRect.width / ratio};
           }
 
-          return { width, height };
+          return {width, height};
         }
       }
     }
@@ -242,7 +241,7 @@ export default function Crop(props: CropProps) {
     const canvasWrapper = document.getElementById('canvasWrapper') as HTMLElement;
     const isClickedOutsidePhoto = !canvasWrapper.contains(event.target as Node);
 
-    if (isClickedOutsidePhoto) {
+    if(isClickedOutsidePhoto) {
       crop(cropBox()!.position);
     }
   };
@@ -261,7 +260,7 @@ export default function Crop(props: CropProps) {
     overlay.div.appendChild(croppedZoneOverlayRight as HTMLElement);
     overlay.div.appendChild(croppedZoneOverlayBottom as HTMLElement);
 
-    const { width, height } = getCropBoxDimensions();
+    const {width, height} = getCropBoxDimensions();
 
     const box = layer.createBox({
       width,
@@ -279,7 +278,7 @@ export default function Crop(props: CropProps) {
       },
       onAfterResize() {
         cropChanged = true;
-      },
+      }
     });
 
     box.append(cropBoxGrid as HTMLElement);
@@ -306,8 +305,8 @@ export default function Crop(props: CropProps) {
     leftZone.removeEventListener('mousedown', canasClickOutsideListener);
   }
 
-  function crop({ x, y, width, height }: { x: number; y: number; width: number; height: number }) {
-    if (!cropChanged) {
+  function crop({x, y, width, height}: { x: number; y: number; width: number; height: number }) {
+    if(!cropChanged) {
       return;
     }
 
@@ -327,7 +326,7 @@ export default function Crop(props: CropProps) {
     let newCanvasHeight = availabeHeight;
     let newCanvasWidth = newCanvasHeight * width / height;
 
-    if (newCanvasWidth > maxWidht) {
+    if(newCanvasWidth > maxWidht) {
       newCanvasWidth = maxWidht;
       newCanvasHeight = newCanvasWidth * height / width;
     }
@@ -348,7 +347,7 @@ export default function Crop(props: CropProps) {
       newCanvasWidth * 0.96,
       newCanvasHeight * 0.96,
       offsetTopAfter,
-      animationDuration,
+      animationDuration
     );
 
     setTimeout(() => {
@@ -369,13 +368,13 @@ export default function Crop(props: CropProps) {
     const event = e as MouseEvent;
 
     const slider = resizeSlider as HTMLElement;
-    const { clientX } = event;
+    const {clientX} = event;
     const oneNumberWidth = 42;
 
     sliderDraggingInfo = {
       initialLeft: currentSliderLeft,
       initialClientX: clientX,
-      sliderWidth: (angles.length - 1) * oneNumberWidth,
+      sliderWidth: (angles.length - 1) * oneNumberWidth
     };
 
     slider.classList.add('pe-resizer__slider--dragging');
@@ -404,13 +403,13 @@ export default function Crop(props: CropProps) {
   }
 
   function moveAngleSlide(e: Event) {
-    if (!sliderDraggingInfo) {
+    if(!sliderDraggingInfo) {
       return;
     }
 
     const event = e as MouseEvent;
-    const { clientX } = event;
-    const { initialClientX, initialLeft, sliderWidth } = sliderDraggingInfo;
+    const {clientX} = event;
+    const {initialClientX, initialLeft, sliderWidth} = sliderDraggingInfo;
     const deltaX = clientX - initialClientX;
 
     let x = initialLeft + deltaX;
@@ -420,10 +419,10 @@ export default function Crop(props: CropProps) {
 
     const maxTranslateAbs = 260;
 
-    if (x > maxTranslateAbs) {
+    if(x > maxTranslateAbs) {
       x = maxTranslateAbs;
     }
-    else if (x < -maxTranslateAbs) {
+    else if(x < -maxTranslateAbs) {
       x = -maxTranslateAbs;
     }
 
@@ -462,7 +461,7 @@ export default function Crop(props: CropProps) {
   function _rotate90() {
     const imageLayer = props.layerMaganer().getBaseCanvasLayer();
 
-    if (!imageLayer) {
+    if(!imageLayer) {
       return;
     }
 
@@ -487,7 +486,7 @@ export default function Crop(props: CropProps) {
       props.resizeCanvasWrapper(newWidth, newHeight, newTopOffset);
       imageLayer.rotate90();
       imageLayer.save();
-    }, { once: true });
+    }, {once: true});
 
     canvasWrapper.style.transition = 'transform 0.4s cubic-bezier(.69,-0.17,.37,1.14)';
     canvasWrapper.style.transform = `rotate(${90}deg)`;
@@ -498,13 +497,13 @@ export default function Crop(props: CropProps) {
   function rotate90() {
     const imageLayer = props.layerMaganer().getBaseCanvasLayer();
 
-    if (!imageLayer) {
+    if(!imageLayer) {
       return;
     }
 
     deinitCrop();
 
-    const { visibleCanvas } = imageLayer;
+    const {visibleCanvas} = imageLayer;
 
     const canvasWrapper = document.getElementById('canvasWrapper') as HTMLElement;
     const minMarginTop = 60;
@@ -518,20 +517,20 @@ export default function Crop(props: CropProps) {
 
     const isHorizontal = newWidth > newHeight;
 
-    if (isHorizontal) {
-      if (newWidth > parentRect.width) {
+    if(isHorizontal) {
+      if(newWidth > parentRect.width) {
         newWidth = parentRect.width;
         newHeight = newWidth / newRatio;
       }
     }
     else {
-      if (newHeight > parentRect.height) {
+      if(newHeight > parentRect.height) {
         newHeight = parentRect.height;
         newWidth = newHeight * newRatio;
       }
     }
 
-    if (newHeight > parentRect.height - minMarginTop) {
+    if(newHeight > parentRect.height - minMarginTop) {
       newHeight = parentRect.height - minMarginTop;
       newWidth = newHeight * newRatio;
     }
@@ -540,7 +539,7 @@ export default function Crop(props: CropProps) {
 
     let topOffset = minMarginTop;
 
-    if (spaceAboveAndBelow / 2 > minMarginTop) {
+    if(spaceAboveAndBelow / 2 > minMarginTop) {
       topOffset = spaceAboveAndBelow / 2;
     }
 
@@ -555,7 +554,7 @@ export default function Crop(props: CropProps) {
   function rotateImage(degrees: number) {
     const imageLayer = props.layerMaganer().getBaseCanvasLayer();
 
-    if (!imageLayer) {
+    if(!imageLayer) {
       return;
     }
 
@@ -590,7 +589,7 @@ export default function Crop(props: CropProps) {
                   classList={
                     {
                       'pe-crop__row': true,
-                      'pe-crop__row--selected': aspectRatio() === ratio.title,
+                      'pe-crop__row--selected': aspectRatio() === ratio.title
                     }
                   }
                   onClick={() => aspectRatioChanged(ratio)}

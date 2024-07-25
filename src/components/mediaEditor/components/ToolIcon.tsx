@@ -19,7 +19,7 @@ export default function ToolIcon(name: string) {
 
   wrapper.className = 'media-editor-tool-icon';
 
-  switch (name) {
+  switch(name) {
     case 'brush':
       wrapper.innerHTML = BrushToolIcon;
       break;

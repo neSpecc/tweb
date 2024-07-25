@@ -22,7 +22,7 @@ export function cubicBezier(p1x: number, p1y: number, p2x: number, p2y: number):
       return (3 * ax * t + 2 * bx) * t + cx;
     }
 
-    function solveCurveX(x, epsilon = 1e-6) {
+    function solveCurveX(x: number, epsilon = 1e-6) {
       let t0;
       let t1;
       let t2;
@@ -30,7 +30,6 @@ export function cubicBezier(p1x: number, p1y: number, p2x: number, p2y: number):
       let d2;
       let i;
 
-      // First try a few iterations of Newton's method -- normally very fast.
       for(t2 = x, i = 0; i < 8; i++) {
         x2 = sampleCurveX(t2) - x;
         if(Math.abs(x2) < epsilon) {
@@ -43,7 +42,6 @@ export function cubicBezier(p1x: number, p1y: number, p2x: number, p2y: number):
         t2 -= x2 / d2;
       }
 
-      // Fall back to the bisection method for reliability.
       t0 = 0;
       t1 = 1;
       t2 = x;
@@ -69,7 +67,6 @@ export function cubicBezier(p1x: number, p1y: number, p2x: number, p2y: number):
         t2 = (t1 - t0) * 0.5 + t0;
       }
 
-      // Failure.
       return t2;
     }
 

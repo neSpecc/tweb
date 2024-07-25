@@ -1,9 +1,9 @@
-import type { Accessor } from 'solid-js';
-import { createSignal, onCleanup, onMount } from 'solid-js';
-import type { DivLayer, useCanvasLayers } from '../services/useCanvasLayers';
-import { useTextTool } from '../services/useTextTool';
-import Icon from '../utils/icon';
+import type {Accessor} from 'solid-js';
+import {createSignal, onCleanup, onMount} from 'solid-js';
+import type {DivLayer, useCanvasLayers} from '../services/useCanvasLayers';
+import {useTextTool} from '../services/useTextTool';
 import ColorSelector from './ColorSelector';
+import Icon from '../../icon';
 
 interface TextToolProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
@@ -18,15 +18,15 @@ export default function TextTool(props: TextToolProps) {
   const [font, setFont] = createSignal<number>(0);
 
   const alignments: ['left' | 'center' | 'right', HTMLElement][] = [
-    ['left', Icon('align-left')],
-    ['center', Icon('align-center')],
-    ['right', Icon('align-right')],
+    ['left', Icon('align_left')],
+    ['center', Icon('align_center')],
+    ['right', Icon('align_right')]
   ];
 
   const textStyles: ['regular' | 'stroked' | 'backgrounded', HTMLElement][] = [
-    ['regular', Icon('font-frame-no')],
-    ['stroked', Icon('font-frame-black')],
-    ['backgrounded', Icon('font-frame-white')],
+    ['regular', Icon('fontframe_no')],
+    ['stroked', Icon('fontframe_black')],
+    ['backgrounded', Icon('fontframe_white')]
   ];
 
   const fonts = [
@@ -37,7 +37,7 @@ export default function TextTool(props: TextToolProps) {
     'Noteworthy',
     'Georgia',
     'Papyrus',
-    'Snell Roundhand',
+    'Snell Roundhand'
   ];
 
   function init() {
@@ -46,7 +46,7 @@ export default function TextTool(props: TextToolProps) {
     /**
      * Initialize text layer if it is  not already initialized
      */
-    if (layer === undefined) {
+    if(layer === undefined) {
       layer = props.layerMaganer().createDivLayer();
 
       setTextLayer(layer);
@@ -56,7 +56,7 @@ export default function TextTool(props: TextToolProps) {
       layer,
       onFontSizeChange: (value) => {
         setFontSize(value);
-      },
+      }
     });
 
     tool.init();
@@ -113,7 +113,7 @@ export default function TextTool(props: TextToolProps) {
             <div
               classList={{
                 'pe-text__style-section-item': true,
-                'pe-text__style-section-item--selected': alignment() === index,
+                'pe-text__style-section-item--selected': alignment() === index
               }}
               onClick={_ => alignmentChanged(index)}
             >
@@ -126,7 +126,7 @@ export default function TextTool(props: TextToolProps) {
             <div
               classList={{
                 'pe-text__style-section-item': true,
-                'pe-text__style-section-item--selected': textStyle() === index,
+                'pe-text__style-section-item--selected': textStyle() === index
               }}
               onClick={_ => setStyle(index)}
             >
@@ -156,7 +156,7 @@ export default function TextTool(props: TextToolProps) {
           <div
             classList={{
               'pe-settings-row': true,
-              'pe-settings-row--selected': font() === index,
+              'pe-settings-row--selected': font() === index
             }}
             onClick={_ => selectFont(index)}
           >

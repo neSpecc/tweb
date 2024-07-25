@@ -116,30 +116,6 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     syncVisibleCanvas(layer);
   }
 
-  function _resizeCanvasLayer(layer: CanvasLayer): void {
-    const context = layer.canvas.getContext('2d', {willReadFrequently: true});
-
-    if(!context) {
-      throw new Error('Could not get layer context');
-    }
-
-    const newWidth = layersParent.offsetWidth;
-    const newHeight = layersParent.offsetHeight;
-
-    if(layer.canvasImageData) {
-      const resizedCanvas = resizeImageData(layer.canvasImageData, newWidth, newHeight);
-
-      layer.canvas.width = newWidth;
-      layer.canvas.height = newHeight;
-
-      context.drawImage(resizedCanvas, 0, 0);
-    }
-
-    /**
-     * @todo Resize offscreen canvas
-     */
-  }
-
   function drawWithoutFilters(layer: CanvasLayer): void {
     // restoreState(layer); ???
 
@@ -151,24 +127,6 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
 
     syncVisibleCanvas(layer);
   }
-
-  // function _drawWithoutFilters(layer: CanvasLayer): void {
-  //   layer.canvas.width = layersParent.offsetWidth;
-  //   layer.canvas.height = layersParent.offsetHeight;
-
-  //   const context = layer.canvas.getContext('2d', { willReadFrequently: true });
-
-  //   if (!context) {
-  //     throw new Error('Could not get layer context');
-  //   }
-
-  //   if (!layer.canvasImageDataWithoutFilters) {
-  //     throw new Error('No canvas image data available');
-  //   }
-  //   restoreState(layer);
-
-  //   context.putImageData(layer.canvasImageDataWithoutFilters, 0, 0);
-  // }
 
   function rotateCanvasLayerContent(layer: CanvasLayer, angle: number): void {
     const {
@@ -480,6 +438,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
           height: 0
         },
         filters: {
+          enhance: 0,
           brightness: 0,
           contrast: 0,
           saturation: 0,
@@ -566,7 +525,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     });
   }
 
-  async function exportBoxesToCanvas(layer: DivLayer, width: number, height: number): HTMLCanvasElement {
+  async function exportBoxesToCanvas(layer: DivLayer, width: number, height: number): Promise<HTMLCanvasElement> {
     const scaleFactor = 10;
 
     const highResCanvas = document.createElement('canvas');

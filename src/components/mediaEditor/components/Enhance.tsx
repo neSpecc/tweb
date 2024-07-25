@@ -1,6 +1,6 @@
-import type { Accessor } from 'solid-js';
-import { For, createSignal, onCleanup, onMount } from 'solid-js';
-import type { CanvasLayer, useCanvasLayers } from '../services/useCanvasLayers';
+import type {Accessor} from 'solid-js';
+import {For, createSignal, onCleanup, onMount} from 'solid-js';
+import type {CanvasLayer, useCanvasLayers} from '../services/useCanvasLayers';
 
 interface EnhanceProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
@@ -30,11 +30,11 @@ function Enhance(props: EnhanceProps) {
     ['shadows', 'Shadows', [-100, 100], shadows, setShadows],
     ['vignette', 'Vignette', [0, 100], vignette, setVignette],
     ['grain', 'Grain', [0, 100], grain, setGrain],
-    ['sharpen', 'Sharpen', [0, 100], sharpen, setSharpen],
+    ['sharpen', 'Sharpen', [0, 100], sharpen, setSharpen]
   ] as [string, string, [number, number], Accessor<number>, (value: number) => void][];
 
   function init() {
-    if (!props.layerMaganer()) {
+    if(!props.layerMaganer()) {
 
     }
 
@@ -68,7 +68,7 @@ function Enhance(props: EnhanceProps) {
   });
 
   function handleFilterChange(e: InputEvent) {
-    if (e.target === null) {
+    if(e.target === null) {
       return;
     }
 
@@ -76,7 +76,7 @@ function Enhance(props: EnhanceProps) {
     const filterName = input.dataset.name as keyof CanvasLayer['state']['filters'];
     const newValue = Number.parseInt(input.value);
 
-    if (filterName === undefined) {
+    if(filterName === undefined) {
       return;
     }
 

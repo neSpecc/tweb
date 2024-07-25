@@ -1,6 +1,6 @@
-import type { Accessor } from 'solid-js';
-import { onCleanup, onMount } from 'solid-js';
-import type { useCanvasLayers } from '../services/useCanvasLayers';
+import type {Accessor} from 'solid-js';
+import {onCleanup, onMount} from 'solid-js';
+import type {useCanvasLayers} from '../services/useCanvasLayers';
 
 interface StickersProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
