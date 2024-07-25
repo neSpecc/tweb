@@ -1,5 +1,5 @@
-import type { DivLayer } from './useCanvasLayers';
-import type { DraggableBox } from './useDraggableBox';
+import type {DivLayer} from './useCanvasLayers';
+import type {DraggableBox} from './useDraggableBox';
 
 interface UseTextToolParams {
   layer: DivLayer;
@@ -32,28 +32,28 @@ export function useTextTool(params: UseTextToolParams) {
     textBoxBackgrounded: 'text-box--backgrounded',
     textBoxLeftAligned: 'text-box--left-aligned',
     textBoxCenterAligned: 'text-box--center-aligned',
-    textBoxRightAligned: 'text-box--right-aligned',
+    textBoxRightAligned: 'text-box--right-aligned'
   };
 
   function updateBoxParam(box: DraggableBox, newParams: Partial<TextareaState>): void {
     state.set(box, {
       ...state.get(box) as TextareaState ?? {},
-      ...newParams,
+      ...newParams
     });
 
     const statesToStoreInBoxMeta = ['style', 'alignment', 'color'] as (keyof Pick<TextareaState, 'style' | 'alignment' | 'color'>)[];
 
-    for (const key of statesToStoreInBoxMeta) {
+    for(const key of statesToStoreInBoxMeta) {
       const value = newParams[key];
 
-      if (value) {
+      if(value) {
         box.meta[key] = value;
       }
     }
   }
 
   function onLayerClick(event: MouseEvent) {
-    const { offsetX, offsetY } = event;
+    const {offsetX, offsetY} = event;
 
     addText(offsetX, offsetY);
     params.layer.removeEmptyBoxes();
@@ -63,7 +63,7 @@ export function useTextTool(params: UseTextToolParams) {
     const prevState = state.get(box);
     const textarea = box.el.querySelector(`.${CSS.textBox}`) as HTMLTextAreaElement;
 
-    if (!prevState) {
+    if(!prevState) {
       throw new Error('Can change font size of the box since it is not initialized');
     }
 
@@ -110,7 +110,7 @@ export function useTextTool(params: UseTextToolParams) {
 
     console.log('lineWrapper', lineWrapper);
 
-    if (lineWrapper.length === 0) {
+    if(lineWrapper.length === 0) {
       return;
     }
 
@@ -119,7 +119,7 @@ export function useTextTool(params: UseTextToolParams) {
     /**
      * If line is empty, add zero-width space to it
      */
-    if (lastLine.textContent === '') {
+    if(lastLine.textContent === '') {
       lastLine.textContent = '\u200B';
     }
 
@@ -143,19 +143,19 @@ export function useTextTool(params: UseTextToolParams) {
   function drawSvgShape(box: DraggableBox) {
     const boxState = state.get(box) as TextareaState;
 
-    if (boxState.style !== 'backgrounded') {
+    if(boxState.style !== 'backgrounded') {
       return;
     }
 
     const textarea = box.el.querySelector(`.${CSS.textBox}`) as HTMLDivElement;
     // Remove any existing SVG
     const existingSvg = textarea.querySelector('svg');
-    if (existingSvg) {
+    if(existingSvg) {
       existingSvg.remove();
     }
 
     const textBoxLines = textarea.querySelectorAll('.text-box__line');
-    if (textBoxLines.length === 0) {
+    if(textBoxLines.length === 0) {
       console.error('No elements found with class .text-box__line');
       return;
     }
@@ -180,7 +180,7 @@ export function useTextTool(params: UseTextToolParams) {
         left,
         top,
         right,
-        bottom,
+        bottom
       };
     });
     const radius = boxState.fontSize > 30 ? 16 : boxState.fontSize / 1.5;
@@ -190,26 +190,26 @@ export function useTextTool(params: UseTextToolParams) {
       const line = lines[lineIndex];
       const next = lines[lineIndex + 1];
 
-      if (!line) {
+      if(!line) {
         throw new Error(`Line not found: ${lineIndex}`);
       }
 
-      const { right, bottom } = line;
+      const {right, bottom} = line;
 
       result += `L${line.right},${line.bottom - radius}`;
 
-      if (next) {
+      if(next) {
         const distance = Math.abs(next.right - right);
         const radiusAdjusted = Math.min(radius, distance / 2);
 
         console.log('distance', distance, 'radiusAdjusted', radiusAdjusted, radius);
 
-        if (right < next.right) { // If the next line is wider
+        if(right < next.right) { // If the next line is wider
           result += `Q${right},${bottom} ${right + radiusAdjusted},${next.top}`; // Bottom-right corner rounded
           result += `L${next.right - radiusAdjusted},${next.top}`;
           result += `Q${next.right},${next.top} ${next.right},${next.top + radiusAdjusted}`;
         }
-        else if (right > next.right) {
+        else if(right > next.right) {
           result += `Q${right},${bottom} ${right - radiusAdjusted},${bottom}`; // Bottom-right corner rounded
           result += `L${next.right + radiusAdjusted},${bottom}`;
           result += `Q${next.right},${bottom} ${next.right},${next.top + radiusAdjusted}`;
@@ -227,23 +227,23 @@ export function useTextTool(params: UseTextToolParams) {
       const line = lines[lineIndex];
       const prev = lines[lineIndex - 1];
 
-      if (!line) {
+      if(!line) {
         throw new Error(`Line not found: ${lineIndex}`);
       }
 
-      const { left } = line;
+      const {left} = line;
 
       result += `L${line.left},${line.top + radius}`;
 
       const distance = Math.abs(prev.left - left);
       const radiusAdjusted = Math.min(radius, distance / 2);
 
-      if (left > prev.left && left) {
+      if(left > prev.left && left) {
         result += `Q${line.left},${line.top} ${line.left - radiusAdjusted},${prev.bottom}`;
         result += `L${prev.left + radiusAdjusted},${prev.bottom}`;
         result += `Q${prev.left},${prev.bottom} ${prev.left},${prev.bottom - radiusAdjusted}`;
       }
-      else if (left < prev.left) {
+      else if(left < prev.left) {
         result += `Q${line.left},${line.top} ${line.left + radiusAdjusted},${prev.bottom}`;
         result += `L${prev.left - radiusAdjusted},${prev.bottom}`;
         result += `Q${prev.left},${prev.bottom} ${prev.left},${prev.bottom - radiusAdjusted}`;
@@ -265,7 +265,7 @@ export function useTextTool(params: UseTextToolParams) {
     pathData += `L${firstLine.right - radius},${firstLine.top}`;
     pathData += `Q${firstLine.right},${firstLine.top} ${firstLine.right},${firstLine.top + radius}`; // Top-right corner rounded
 
-    while (curIndex < lines.length) {
+    while(curIndex < lines.length) {
       pathData += traverseFromTopToBottom(curIndex);
       curIndex++;
     }
@@ -282,7 +282,7 @@ export function useTextTool(params: UseTextToolParams) {
 
     curIndex = lines.length - 1;
 
-    while (curIndex > 0) {
+    while(curIndex > 0) {
       pathData += traverseFromBottomToTop(curIndex);
       curIndex--;
     }
@@ -343,7 +343,7 @@ export function useTextTool(params: UseTextToolParams) {
           fontSize: Number.parseFloat(textarea.style.fontSize),
           originalWidth: textarea.offsetWidth,
           originalPaddingBlock: Number.parseFloat(computedStyle.paddingBlock),
-          originalPaddingInline: Number.parseFloat(computedStyle.paddingInline),
+          originalPaddingInline: Number.parseFloat(computedStyle.paddingInline)
         });
         textarea.blur();
       },
@@ -366,7 +366,7 @@ export function useTextTool(params: UseTextToolParams) {
       },
       onDeactivate() {
         textarea.blur();
-      },
+      }
     });
 
     textarea.addEventListener('input', () => {
@@ -381,11 +381,11 @@ export function useTextTool(params: UseTextToolParams) {
       /**
        * Prevent deleting last line wrapper
        */
-      if (inputType === 'deleteContentBackward' && textarea.textContent!.replace('/\u200B/', '').trim() === '') {
+      if(inputType === 'deleteContentBackward' && textarea.textContent!.replace('/\u200B/', '').trim() === '') {
         event.preventDefault();
       }
 
-      if (inputType === 'insertLineBreak' || inputType === 'insertParagraph') {
+      if(inputType === 'insertLineBreak' || inputType === 'insertParagraph') {
         event.preventDefault();
         insertLineWrapper(textarea);
         focusEditableDiv(textarea);
@@ -401,7 +401,7 @@ export function useTextTool(params: UseTextToolParams) {
       originalWidth: textarea.offsetWidth,
       originalPaddingBlock,
       originalPaddingInline,
-      style: 'regular',
+      style: 'regular'
     });
 
     /**
@@ -419,7 +419,7 @@ export function useTextTool(params: UseTextToolParams) {
   function setTextSize(value: number): void {
     const box = params.layer.getActiveBox();
 
-    if (!box) {
+    if(!box) {
       return;
     }
 
@@ -428,14 +428,14 @@ export function useTextTool(params: UseTextToolParams) {
     drawSvgShape(box);
 
     updateBoxParam(box, {
-      fontSize: value,
+      fontSize: value
     });
   }
 
   function toggleStoked(box: DraggableBox, state = true): void {
     const textarea = box.el.querySelector(`.${CSS.textBox}`) as HTMLTextAreaElement;
 
-    if (!textarea) {
+    if(!textarea) {
       return;
     }
 
@@ -446,19 +446,19 @@ export function useTextTool(params: UseTextToolParams) {
     const boxState = state.get(box) as TextareaState;
     const textarea = box.el.querySelector(`.${CSS.textBox}`) as HTMLTextAreaElement;
 
-    if (!textarea) {
+    if(!textarea) {
       return;
     }
 
     textarea.classList.toggle(CSS.textBoxBackgrounded, newState);
 
-    if (newState) {
+    if(newState) {
       drawSvgShape(box);
       textarea.style.color = boxState.color === '#ffffff' ? '#000000' : '#ffffff';
     }
     else {
       const existingSvg = textarea.querySelector('svg');
-      if (existingSvg) {
+      if(existingSvg) {
         existingSvg.remove();
       }
 
@@ -469,18 +469,18 @@ export function useTextTool(params: UseTextToolParams) {
   function setStyle(style: 'regular' | 'stroked' | 'backgrounded'): void {
     const box = params.layer.getActiveBox();
 
-    if (!box) {
+    if(!box) {
       return;
     }
 
     updateBoxParam(box, {
-      style,
+      style
     });
 
     toggleBackgrounded(box, false);
     toggleStoked(box, false);
 
-    switch (style) {
+    switch(style) {
       case 'regular':
         break;
       case 'stroked':
@@ -495,7 +495,7 @@ export function useTextTool(params: UseTextToolParams) {
     const box = params.layer.getActiveBox()!;
     const textarea = box.el.querySelector(`.${CSS.textBox}`) as HTMLDivElement;
 
-    if (!textarea) {
+    if(!textarea) {
       return;
     }
 
@@ -503,7 +503,7 @@ export function useTextTool(params: UseTextToolParams) {
     textarea.classList.add(`text-box--${alignment}-aligned`);
 
     updateBoxParam(box, {
-      alignment,
+      alignment
     });
 
     drawSvgShape(box);
@@ -514,28 +514,28 @@ export function useTextTool(params: UseTextToolParams) {
     const boxState = state.get(box) as TextareaState;
     const textarea = box?.el.querySelector(`.${CSS.textBox}`) as HTMLTextAreaElement;
 
-    if (box === null || !textarea) {
+    if(box === null || !textarea) {
       return;
     }
 
     textarea.style.color = boxState.style === 'backgrounded' ? (color === '#ffffff' ? '#000000' : '#ffffff') : color;
 
     updateBoxParam(box, {
-      color,
+      color
     });
 
     drawSvgShape(box);
   }
 
   function init() {
-    const { layer } = params;
+    const {layer} = params;
 
     layer.div.addEventListener('mousedown', onLayerClick);
     layer.div.style.cursor = 'text';
   }
 
   function destroy() {
-    const { layer } = params;
+    const {layer} = params;
 
     layer.div.removeEventListener('mousedown', onLayerClick);
     layer.deactivateAllBoxes();
@@ -548,6 +548,6 @@ export function useTextTool(params: UseTextToolParams) {
     setTextSize,
     setStyle,
     setAlignment,
-    setColor,
+    setColor
   };
 }

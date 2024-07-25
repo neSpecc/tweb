@@ -7,7 +7,7 @@ export function resizeImageData(imageData: ImageData, newWidth: number, newHeigh
   offScreenCanvas.height = newHeight;
   const offScreenCtx = offScreenCanvas.getContext('2d');
 
-  if (!offScreenCtx) {
+  if(!offScreenCtx) {
     throw new Error('Could not get off-screen context');
   }
 
@@ -19,7 +19,7 @@ export function resizeImageData(imageData: ImageData, newWidth: number, newHeigh
   tempCanvas.height = imageData.height;
   const tempCtx = tempCanvas.getContext('2d');
 
-  if (!tempCtx) {
+  if(!tempCtx) {
     throw new Error('Could not get temporary context');
   }
 

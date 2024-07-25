@@ -1,7 +1,7 @@
 export function debounce(fn: (...args: any[]) => void, delay: number) {
   let timeoutID: number | null = null;
-  return function (...args: any[]) {
-    if (timeoutID) {
+  return function(...args: any[]) {
+    if(timeoutID) {
       clearTimeout(timeoutID);
     }
     timeoutID = setTimeout(() => {

@@ -29,7 +29,7 @@ export function useFilters() {
 
     factor = factor * strength + 1 - strength;
 
-    for (let i = 0; i < data.length; i += 4) {
+    for(let i = 0; i < data.length; i += 4) {
       data[i] = Math.min(255, Math.max(0, data[i] * factor));
       data[i + 1] = Math.min(255, Math.max(0, data[i + 1] * factor));
       data[i + 2] = Math.min(255, Math.max(0, data[i + 2] * factor));
@@ -44,7 +44,7 @@ export function useFilters() {
   function contrast(data: Uint8ClampedArray, contrast: number) {
     const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
 
-    for (let i = 0; i < data.length; i += 4) {
+    for(let i = 0; i < data.length; i += 4) {
       data[i] = Math.min(255, Math.max(0, factor * (data[i] - 128) + 128));
       data[i + 1] = Math.min(255, Math.max(0, factor * (data[i + 1] - 128) + 128));
       data[i + 2] = Math.min(255, Math.max(0, factor * (data[i + 2] - 128) + 128));
@@ -59,7 +59,7 @@ export function useFilters() {
   function saturation(data: Uint8ClampedArray, saturation: number) {
     const factor = 1 + saturation / 100;
 
-    for (let i = 0; i < data.length; i += 4) {
+    for(let i = 0; i < data.length; i += 4) {
       const r = data[i];
       const g = data[i + 1];
       const b = data[i + 2];
@@ -79,7 +79,7 @@ export function useFilters() {
   function warmth(data: Uint8ClampedArray, warmth: number) {
     const factor = warmth / 100;
 
-    for (let i = 0; i < data.length; i += 4) {
+    for(let i = 0; i < data.length; i += 4) {
       data[i] = Math.min(255, Math.max(0, data[i] + factor * 50)); // Red
       data[i + 2] = Math.min(255, Math.max(0, data[i + 2] - factor * 50)); // Blue
     }
@@ -89,7 +89,7 @@ export function useFilters() {
     const normalizedFade = fade / 100;
     const targetSepiaIntensity = normalizedFade * 0.3;
 
-    for (let i = 0; i < data.length; i += 4) {
+    for(let i = 0; i < data.length; i += 4) {
       const r = data[i];
       const g = data[i + 1];
       const b = data[i + 2];
@@ -119,16 +119,16 @@ export function useFilters() {
   function highlights(data: Uint8ClampedArray, highlights: number) {
     const threshold = 255 * (1 - Math.abs(highlights / 100));
 
-    for (let i = 0; i < data.length; i += 4) {
+    for(let i = 0; i < data.length; i += 4) {
       const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
 
-      if (highlights >= 0 && brightness > threshold) {
+      if(highlights >= 0 && brightness > threshold) {
         const factor = 1 + Math.abs(highlights / 100);
         data[i] = Math.min(255, data[i] * factor); // Red
         data[i + 1] = Math.min(255, data[i + 1] * factor); // Green
         data[i + 2] = Math.min(255, data[i + 2] * factor); // Blue
       }
-      else if (highlights < 0) {
+      else if(highlights < 0) {
         const factor = 1 - Math.abs(highlights / 100);
         data[i] *= factor; // Red
         data[i + 1] *= factor; // Green
@@ -145,30 +145,30 @@ export function useFilters() {
   function shadows(data: Uint8ClampedArray, shadows: number) {
     const threshold = 255 * (Math.abs(shadows / 100));
 
-    for (let i = 0; i < data.length; i += 4) {
+    for(let i = 0; i < data.length; i += 4) {
       const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
 
-      if (shadows > 0 && brightness < threshold) {
+      if(shadows > 0 && brightness < threshold) {
         const factor = 1 + shadows / 100;
         data[i] = Math.max(0, data[i] * factor); // Red
         data[i + 1] = Math.max(0, data[i + 1] * factor); // Green
         data[i + 2] = Math.max(0, data[i + 2] * factor); // Blue
       }
-      else if (shadows <= 0 && brightness < threshold) {
+      else if(shadows <= 0 && brightness < threshold) {
         // Do nothing for non-shadow pixels when shadows <= 0
       }
     }
   }
 
-  function vignette(data: Uint8ClampedArray, vignette: number, { width, height }: { width: number; height: number }) {
+  function vignette(data: Uint8ClampedArray, vignette: number, {width, height}: { width: number; height: number }) {
     const centerX = width / 2;
     const centerY = height / 2;
     const maxDistance = Math.sqrt(centerX * centerX + centerY * centerY);
 
     const vignetteIntensityValue = vignette / 100;
 
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
+    for(let y = 0; y < height; y++) {
+      for(let x = 0; x < width; x++) {
         const dx = centerX - x;
         const dy = centerY - y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -188,7 +188,7 @@ export function useFilters() {
     const grainScale = 0.15;
     const intensity = grain / 100 * grainScale;
 
-    for (let i = 0; i < data.length; i += 4) {
+    for(let i = 0; i < data.length; i += 4) {
       /**
        * Random noise
        */
@@ -200,7 +200,7 @@ export function useFilters() {
     }
   }
 
-  function sharpen(data: Uint8ClampedArray, sharpen: number, { width, height }: { width: number; height: number }) {
+  function sharpen(data: Uint8ClampedArray, sharpen: number, {width, height}: { width: number; height: number }) {
     const intensity = sharpen / 100;
 
     const weights = [
@@ -212,7 +212,7 @@ export function useFilters() {
       -1,
       0,
       -1,
-      0,
+      0
     ];
 
     const side = Math.round(Math.sqrt(weights.length));
@@ -220,15 +220,15 @@ export function useFilters() {
 
     const tmpData = new Uint8ClampedArray(data.length);
 
-    for (let y = halfSide; y < height - halfSide; y++) {
-      for (let x = halfSide; x < width - halfSide; x++) {
+    for(let y = halfSide; y < height - halfSide; y++) {
+      for(let x = halfSide; x < width - halfSide; x++) {
         const offset = (y * width + x) * 4;
         let r = 0;
         let g = 0;
         let b = 0;
 
-        for (let cy = 0; cy < side; cy++) {
-          for (let cx = 0; cx < side; cx++) {
+        for(let cy = 0; cy < side; cy++) {
+          for(let cx = 0; cx < side; cx++) {
             const scy = y + cy - halfSide;
             const scx = x + cx - halfSide;
             const srcOffset = (scy * width + scx) * 4;
@@ -248,12 +248,12 @@ export function useFilters() {
     }
 
     // Copy tmpData back to original data array
-    for (let i = 0; i < data.length; i++) {
+    for(let i = 0; i < data.length; i++) {
       data[i] = tmpData[i];
     }
   }
 
-  function enhance(data: Uint8ClampedArray, enhanceValue: number, imageSize = { width: 0, height: 0 }) {
+  function enhance(data: Uint8ClampedArray, enhanceValue: number, imageSize = {width: 0, height: 0}) {
     const intensity = 0.2;
     const contrastValue = enhanceValue * intensity * 0.5;
     const brightnessValue = enhanceValue * intensity * 0.5;
@@ -277,7 +277,7 @@ export function useFilters() {
     vignette,
     grain,
     sharpen,
-    enhance,
+    enhance
   };
 
   // const offScreenCanvas = document.createElement('canvas');
@@ -286,13 +286,13 @@ export function useFilters() {
   function applyFilter(imageData: ImageData, filter: keyof CanvasFilters, value: number) {
     const data = imageData.data;
 
-    if (!(filter in filters)) {
+    if(!(filter in filters)) {
       throw new Error(`Filter ${filter} not found`);
     }
 
     filters[filter](data, value, {
       width: imageData.width,
-      height: imageData.height,
+      height: imageData.height
     });
   }
 
@@ -328,14 +328,14 @@ export function useFilters() {
   function restoreFilters(imageData: ImageData, filtersValues: Partial<CanvasFilters>) {
     const data = imageData.data;
 
-    for (const [filter, value] of Object.entries(filtersValues)) {
-      if (!(filter in filters)) {
+    for(const [filter, value] of Object.entries(filtersValues)) {
+      if(!(filter in filters)) {
         throw new Error(`Filter ${filter} not found`);
       }
 
       filters[filter](data, value, {
         width: imageData.width,
-        height: imageData.height,
+        height: imageData.height
       });
     }
   }
@@ -373,6 +373,6 @@ export function useFilters() {
 
   return {
     applyFilter,
-    restoreFilters,
+    restoreFilters
   };
 }

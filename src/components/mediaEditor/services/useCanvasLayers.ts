@@ -1,7 +1,7 @@
 import PromiseQueue from '../utils/promise-queue';
-import { resizeImageData } from '../utils/resizeImage';
-import { type DraggableBox, type DraggableBoxCreationAttributes, useDraggableBox } from './useDraggableBox';
-import { type CanvasFilters, useFilters } from './useFilters';
+import {resizeImageData} from '../utils/resizeImage';
+import {type DraggableBox, type DraggableBoxCreationAttributes, useDraggableBox} from './useDraggableBox';
+import {type CanvasFilters, useFilters} from './useFilters';
 
 interface UseCanvasLayersParams {
   wrapperEl: HTMLElement;
@@ -67,10 +67,10 @@ export interface LayerCreationParams {
 export function useCanvasLayers(params?: UseCanvasLayersParams) {
   const layers = new Set<Layer>();
 
-  const { create: createDraggableBox } = useDraggableBox();
-  const { applyFilter, restoreFilters } = useFilters();
+  const {create: createDraggableBox} = useDraggableBox();
+  const {applyFilter, restoreFilters} = useFilters();
 
-  if (!params?.wrapperEl) {
+  if(!params?.wrapperEl) {
     throw new Error('wrapperEl is required');
   }
 
@@ -93,12 +93,12 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
   }
 
   window.addEventListener('resize', windowResizeHandler, {
-    passive: true,
+    passive: true
   });
 
   function resizeToFit() {
     layers.forEach((layer) => {
-      if (isCanvasLayer(layer)) {
+      if(isCanvasLayer(layer)) {
         resizeCanvasLayer(layer);
       }
       else {
@@ -117,16 +117,16 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
   }
 
   function _resizeCanvasLayer(layer: CanvasLayer): void {
-    const context = layer.canvas.getContext('2d', { willReadFrequently: true });
+    const context = layer.canvas.getContext('2d', {willReadFrequently: true});
 
-    if (!context) {
+    if(!context) {
       throw new Error('Could not get layer context');
     }
 
     const newWidth = layersParent.offsetWidth;
     const newHeight = layersParent.offsetHeight;
 
-    if (layer.canvasImageData) {
+    if(layer.canvasImageData) {
       const resizedCanvas = resizeImageData(layer.canvasImageData, newWidth, newHeight);
 
       layer.canvas.width = newWidth;
@@ -143,7 +143,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
   function drawWithoutFilters(layer: CanvasLayer): void {
     // restoreState(layer); ???
 
-    if (!layer.imageDataWithoutFilters) {
+    if(!layer.imageDataWithoutFilters) {
       throw new Error('No image data available for drawing without filters');
     }
 
@@ -174,7 +174,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     const {
       originalImageOffscreenCanvas,
       originalImageOffscreenContext,
-      imageData,
+      imageData
     } = layer;
 
     const width = originalImageOffscreenCanvas.width;
@@ -192,7 +192,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     tempCanvas.height = height * scale;
     const tempContext = tempCanvas.getContext('2d');
 
-    if (!tempContext) {
+    if(!tempContext) {
       throw new Error('Could not get temporary context');
     }
 
@@ -212,7 +212,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
       (width - tempCanvas.width) / 2,
       (height - tempCanvas.height) / 2,
       tempCanvas.width,
-      tempCanvas.height,
+      tempCanvas.height
     );
 
     layer.state.rotation = angle;
@@ -223,7 +223,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
   function rotateCanvasLayerContent90(layer: CanvasLayer): void {
     const {
       originalImageOffscreenCanvas,
-      originalImageOffscreenContext,
+      originalImageOffscreenContext
     } = layer;
 
     const currentWidth = originalImageOffscreenCanvas.width;
@@ -235,7 +235,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     tempCanvas.height = currentWidth;
     const tempContext = tempCanvas.getContext('2d');
 
-    if (!tempContext) {
+    if(!tempContext) {
       throw new Error('Could not get temporary context');
     }
 
@@ -260,7 +260,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     const context = layer.originalImageOffscreenContext;
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
-    if (withoutFilters) {
+    if(withoutFilters) {
       layer.imageDataWithoutFilters = imageData;
       return;
     }
@@ -274,7 +274,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     const {
       originalImageOffscreenCanvas,
       originalImageOffscreenContext,
-      imageData,
+      imageData
     } = layer;
 
     const width = originalImageOffscreenCanvas.width;
@@ -285,7 +285,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     tempCanvas.height = height;
     const tempContext = tempCanvas.getContext('2d');
 
-    if (!tempContext) {
+    if(!tempContext) {
       throw new Error('Could not get temporary context');
     }
 
@@ -308,7 +308,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
 
   function cropCanvas(layer: CanvasLayer, x: number, y: number, width: number, height: number): void {
     layer.save();
-    layer.state.crop = { x, y, width, height };
+    layer.state.crop = {x, y, width, height};
 
     restoreCrop(layer);
   }
@@ -317,10 +317,10 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     const {
       originalImageOffscreenCanvas,
       originalImageOffscreenContext,
-      visibleCanvas,
+      visibleCanvas
     } = layer;
 
-    const { x, y, width, height } = layer.state.crop;
+    const {x, y, width, height} = layer.state.crop;
 
     const scaleX = originalImageOffscreenCanvas.width / visibleCanvas.width;
     const scaleY = originalImageOffscreenCanvas.height / visibleCanvas.height;
@@ -335,7 +335,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     croppedCanvas.height = cropHeight;
     const croppedContext = croppedCanvas.getContext('2d');
 
-    if (!croppedContext) {
+    if(!croppedContext) {
       throw new Error('Failed to crop: Could not get temporary context');
     }
 
@@ -348,7 +348,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
       0,
       0,
       cropWidth,
-      cropHeight,
+      cropHeight
     );
 
     originalImageOffscreenCanvas.width = cropWidth;
@@ -362,11 +362,11 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
   }
 
   function restoreState(layer: CanvasLayer): void {
-    if (layer.state.rotation !== 0) {
+    if(layer.state.rotation !== 0) {
       rotateCanvasLayerContent(layer, layer.state.rotation);
     }
 
-    if (layer.state.crop.width !== 0 && layer.state.crop.height !== 0) {
+    if(layer.state.crop.width !== 0 && layer.state.crop.height !== 0) {
       restoreCrop(layer);
     }
   }
@@ -404,7 +404,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     const {
       visibleCanvas,
       visibleCanvasContext,
-      originalImageOffscreenCanvas,
+      originalImageOffscreenCanvas
     } = layer;
 
     const scale = Math.min(visibleCanvas.width / originalImageOffscreenCanvas.width, visibleCanvas.height / originalImageOffscreenCanvas.height);
@@ -477,7 +477,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
           x: 0,
           y: 0,
           width: 0,
-          height: 0,
+          height: 0
         },
         filters: {
           brightness: 0,
@@ -489,8 +489,8 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
           shadows: 0,
           vignette: 0,
           grain: 0,
-          sharpen: 0,
-        },
+          sharpen: 0
+        }
       },
       remove: (): void => {
         removeCanvasLayer(layer);
@@ -518,7 +518,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
       },
       sync: (): void => {
         syncVisibleCanvas(layer);
-      },
+      }
       // initDrawing: (): void => {
 
       // }
@@ -554,7 +554,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
 
   function removeEmptyBoxesFromLayer(layer: DivLayer): void {
     layer.boxes.forEach((box) => {
-      if (!box.isActive() && box.isEmpty()) {
+      if(!box.isActive() && box.isEmpty()) {
         layer.removeBox(box);
       }
     });
@@ -572,7 +572,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     const highResCanvas = document.createElement('canvas');
     const highResContext = highResCanvas.getContext('2d');
 
-    if (!highResContext) {
+    if(!highResContext) {
       throw new Error('Could not get high-res canvas context');
     }
 
@@ -587,9 +587,9 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     const queue = new PromiseQueue();
 
     layer.boxes.forEach((box) => {
-      queue.add(async () => {
+      queue.add(async() => {
         const boxCanvas = await box.export(scaleFactor * scaleY);
-        const { position } = box;
+        const {position} = box;
 
         highResContext.drawImage(boxCanvas, position.x * scaleX, position.y * scaleY, boxCanvas.width / scaleFactor, boxCanvas.height / scaleFactor);
       });
@@ -623,7 +623,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
         top: 0,
         right: 0,
         bottom: 0,
-        left: 0,
+        left: 0
       } as DOMRect,
       redraw: (): void => {
         div.innerHTML = '';
@@ -640,7 +640,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
           ...params,
           onBeforeActivate: () => {
             deactivateAllBoxesInLayer(layer);
-          },
+          }
         });
       },
       insertBox: (box: DraggableBox, x: number, y: number): void => {
@@ -651,7 +651,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
       removeBox: (box: DraggableBox): void => {
         const index = layer.boxes.indexOf(box);
 
-        if (index === -1) {
+        if(index === -1) {
           return;
         }
 
@@ -682,9 +682,9 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
           box.deactivate();
         });
       },
-      export: async (width: number, height: number): Promise<HTMLCanvasElement> => {
-        return await exportBoxesToCanvas(layer, width, height);
-      },
+      export: async(width: number, height: number): Promise<HTMLCanvasElement> => {
+        return exportBoxesToCanvas(layer, width, height);
+      }
     };
 
     layers.add(layer);
@@ -712,7 +712,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
 
-    if (!context) {
+    if(!context) {
       throw new Error('Could not get canvas context');
     }
     const baseCanvasLayer = getBaseCanvasLayer();
@@ -725,11 +725,11 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     const queue = new PromiseQueue();
 
     layers.forEach((layer) => {
-      if (isCanvasLayer(layer)) {
+      if(isCanvasLayer(layer)) {
         return;
       }
 
-      queue.add(async () => {
+      queue.add(async() => {
         const divCanvasHighRes = await layer.export(baseCanvasLayer.originalImageOffscreenCanvas.width, baseCanvasLayer.originalImageOffscreenCanvas.height);
 
         /**
@@ -740,7 +740,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
         divCanvas.height = baseCanvasLayer.originalImageOffscreenCanvas.height;
         const divContext = divCanvas.getContext('2d');
 
-        if (!divContext) {
+        if(!divContext) {
           throw new Error('Could not get div context');
         }
 
@@ -761,6 +761,6 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     destroy,
     resizeToFit,
     getBaseCanvasLayer,
-    exportLayers,
+    exportLayers
   };
 }

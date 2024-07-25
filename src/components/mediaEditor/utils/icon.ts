@@ -39,13 +39,13 @@ export default function Icon(name: string, className?: string): HTMLDivElement {
 
   iconEl.classList.add('tmp-icon', `tmp-icon--${name}`);
 
-  if (className) {
+  if(className) {
     iconEl.classList.add(className);
   }
 
   let innerHTML = '';
 
-  switch (name) {
+  switch(name) {
     case 'align-center':
       innerHTML = AlignCenter;
       break;

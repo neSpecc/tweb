@@ -18,7 +18,7 @@ export interface DraggableBox {
   isEmpty: () => boolean;
   reposition: () => void;
   resizeToFitContent: () => void;
-  export: (scaleFactor: number) => HTMLCanvasElement;
+  export: (scaleFactor: number) => Promise<HTMLCanvasElement>;
   setMeta: (key: keyof TextBoxMeta, value: string) => void;
 
   meta: TextBoxMeta;
@@ -102,7 +102,7 @@ const CSS = {
   draggableBoxContent: 'draggable-box__content',
   horizonWrapper: 'db-horizon-wrapper',
   horizon: 'db-horizon',
-  horizonAnimateOut: 'db-horizon--animate-out',
+  horizonAnimateOut: 'db-horizon--animate-out'
 };
 
 /**
@@ -121,14 +121,14 @@ export function useDraggableBox() {
   function moveTo(box: DraggableBox, x: number, y: number) {
     const parent = parentMap.get(box.el);
 
-    if (!parent) {
+    if(!parent) {
       return;
     }
 
     /**
      * Do nothing if coors are not changed
      */
-    if (box.position.x === x && box.position.y === y) {
+    if(box.position.x === x && box.position.y === y) {
       return;
     }
 
@@ -138,20 +138,20 @@ export function useDraggableBox() {
     const parentRect = parent.rect;
     const boxRect = {
       width: box.position.width,
-      height: box.position.height,
+      height: box.position.height
     };
 
-    if (x < 0) {
+    if(x < 0) {
       x = 0;
     }
-    else if (x + boxRect.width > parentRect.width) {
+    else if(x + boxRect.width > parentRect.width) {
       x = parentRect.width - boxRect.width;
     }
 
-    if (y < 0) {
+    if(y < 0) {
       y = 0;
     }
-    else if (y + boxRect.height > parentRect.height) {
+    else if(y + boxRect.height > parentRect.height) {
       y = parentRect.height - boxRect.height;
     }
 
@@ -169,7 +169,7 @@ export function useDraggableBox() {
 
     return {
       x: x - parentRect.left,
-      y: y - parentRect.top,
+      y: y - parentRect.top
     };
   }
 
@@ -178,7 +178,7 @@ export function useDraggableBox() {
   }
 
   function scale(scalingBox: ScalingBoxData, event: MouseEvent, minSize = 0) {
-    if (scalingBox.box.position.rotationAngle !== undefined && scalingBox.box.position.rotationAngle !== 0) {
+    if(scalingBox.box.position.rotationAngle !== undefined && scalingBox.box.position.rotationAngle !== 0) {
       scaleRotated(scalingBox, event, minSize);
       return;
     }
@@ -186,7 +186,7 @@ export function useDraggableBox() {
     const box = scalingBox.box;
     const parent = parentMap.get(box.el);
 
-    if (!parent) {
+    if(!parent) {
       return;
     }
 
@@ -197,7 +197,7 @@ export function useDraggableBox() {
       left: box.position.x,
       top: box.position.y,
       width: box.position.width,
-      height: box.position.height,
+      height: box.position.height
     };
 
     const boxLeftInParent = boxRect.left;
@@ -222,25 +222,25 @@ export function useDraggableBox() {
       let adjustedLeft = left;
       let adjustedTop = top;
 
-      if (preserveRatio) {
+      if(preserveRatio) {
         adjustedHeight = adjustedWidth / aspectRatio;
 
-        if (adjustedLeft < 0) {
+        if(adjustedLeft < 0) {
           adjustedWidth += adjustedLeft; // Adjust width if left position is negative
           adjustedHeight = adjustedWidth / aspectRatio;
           adjustedLeft = 0;
         }
 
-        if (adjustedLeft + adjustedWidth > maxWidth) {
+        if(adjustedLeft + adjustedWidth > maxWidth) {
           adjustedWidth = maxWidth - adjustedLeft;
           adjustedHeight = adjustedWidth / aspectRatio;
         }
 
-        if (adjustedTop < 0) {
+        if(adjustedTop < 0) {
           adjustedTop = 0;
         }
 
-        if (adjustedTop + adjustedHeight > maxHeight) {
+        if(adjustedTop + adjustedHeight > maxHeight) {
           adjustedHeight = maxHeight - adjustedTop;
           adjustedWidth = adjustedHeight * aspectRatio;
         }
@@ -249,10 +249,10 @@ export function useDraggableBox() {
         adjustedHeight = Math.max(adjustedHeight, minSize);
       }
       else {
-        if (adjustedLeft < 0) {
+        if(adjustedLeft < 0) {
           adjustedLeft = 0;
         }
-        if (adjustedTop < 0) {
+        if(adjustedTop < 0) {
           adjustedTop = 0;
         }
 
@@ -260,21 +260,21 @@ export function useDraggableBox() {
         adjustedHeight = clamp(adjustedHeight, minSize, maxHeight - adjustedTop);
       }
 
-      return { width: adjustedWidth, height: adjustedHeight, left: adjustedLeft, top: adjustedTop };
+      return {width: adjustedWidth, height: adjustedHeight, left: adjustedLeft, top: adjustedTop};
     }
 
-    switch (scalingBox.direction) {
+    switch(scalingBox.direction) {
       case 'top left':
         newWidth = boxRect.width - distanceX;
         newHeight = preserveRatio ? newWidth / aspectRatio : boxRect.height - distanceY;
         newLeft = boxLeftInParent + (boxRect.width - newWidth);
         newTop = boxTopInParent + (boxRect.height - newHeight);
-        if (newLeft < 0) {
+        if(newLeft < 0) {
           newLeft = 0;
           newWidth = boxRect.width + boxLeftInParent;
           newHeight = preserveRatio ? newWidth / aspectRatio : newHeight;
         }
-        if (newTop < 0) {
+        if(newTop < 0) {
           newTop = 0;
           newHeight = boxRect.height + boxTopInParent;
           newWidth = preserveRatio ? newHeight * aspectRatio : newWidth;
@@ -284,12 +284,12 @@ export function useDraggableBox() {
         newWidth = distanceX;
         newHeight = preserveRatio ? newWidth / aspectRatio : boxRect.height - distanceY;
         newTop = boxTopInParent + (boxRect.height - newHeight);
-        if (newTop < 0) {
+        if(newTop < 0) {
           newTop = 0;
           newHeight = boxRect.height + boxTopInParent;
           newWidth = preserveRatio ? newHeight * aspectRatio : newWidth;
         }
-        if (newWidth + boxLeftInParent > maxWidth) {
+        if(newWidth + boxLeftInParent > maxWidth) {
           newWidth = maxWidth - boxLeftInParent;
           newHeight = preserveRatio ? newWidth / aspectRatio : newHeight;
         }
@@ -298,12 +298,12 @@ export function useDraggableBox() {
         newWidth = boxRect.width - distanceX;
         newHeight = preserveRatio ? newWidth / aspectRatio : distanceY;
         newLeft = boxLeftInParent + (boxRect.width - newWidth);
-        if (newLeft < 0) {
+        if(newLeft < 0) {
           newLeft = 0;
           newWidth = boxRect.width + boxLeftInParent;
           newHeight = preserveRatio ? newWidth / aspectRatio : newHeight;
         }
-        if (newHeight + boxTopInParent > maxHeight) {
+        if(newHeight + boxTopInParent > maxHeight) {
           newHeight = maxHeight - boxTopInParent;
           newWidth = preserveRatio ? newHeight * aspectRatio : newWidth;
         }
@@ -311,11 +311,11 @@ export function useDraggableBox() {
       case 'bottom right':
         newWidth = distanceX;
         newHeight = preserveRatio ? newWidth / aspectRatio : distanceY;
-        if (newWidth + boxLeftInParent > maxWidth) {
+        if(newWidth + boxLeftInParent > maxWidth) {
           newWidth = maxWidth - boxLeftInParent;
           newHeight = preserveRatio ? newWidth / aspectRatio : newHeight;
         }
-        if (newHeight + boxTopInParent > maxHeight) {
+        if(newHeight + boxTopInParent > maxHeight) {
           newHeight = maxHeight - boxTopInParent;
           newWidth = preserveRatio ? newHeight * aspectRatio : newWidth;
         }
@@ -325,25 +325,25 @@ export function useDraggableBox() {
     const adjusted = adjustDimensions(newWidth, newHeight, newLeft ?? boxLeftInParent, newTop ?? boxTopInParent);
 
     // Ensure the box does not move unexpectedly
-    if (preserveRatio) {
-      if (adjusted.width === box.position.width) {
+    if(preserveRatio) {
+      if(adjusted.width === box.position.width) {
         adjusted.left = box.position.x;
       }
-      if (adjusted.height === box.position.height) {
+      if(adjusted.height === box.position.height) {
         adjusted.top = box.position.y;
       }
     }
     else {
-      if (scalingBox.direction.includes('left') && adjusted.left < 0) {
+      if(scalingBox.direction.includes('left') && adjusted.left < 0) {
         adjusted.left = 0;
       }
-      if (scalingBox.direction.includes('right') && adjusted.left + adjusted.width > maxWidth) {
+      if(scalingBox.direction.includes('right') && adjusted.left + adjusted.width > maxWidth) {
         adjusted.left = maxWidth - adjusted.width;
       }
-      if (scalingBox.direction.includes('top') && adjusted.top < 0) {
+      if(scalingBox.direction.includes('top') && adjusted.top < 0) {
         adjusted.top = 0;
       }
-      if (scalingBox.direction.includes('bottom') && adjusted.top + adjusted.height > maxHeight) {
+      if(scalingBox.direction.includes('bottom') && adjusted.top + adjusted.height > maxHeight) {
         adjusted.top = maxHeight - adjusted.height;
       }
     }
@@ -365,7 +365,7 @@ export function useDraggableBox() {
     const box = scalingBox.box;
     const parent = parentMap.get(box.el);
 
-    if (!parent) {
+    if(!parent) {
       return;
     }
 
@@ -377,13 +377,13 @@ export function useDraggableBox() {
 
     const distanceX = currentPointInParent.x - startingPointInParent.x;
 
-    if (distanceX === 0) {
+    if(distanceX === 0) {
       return;
     }
 
     let isGrow;
 
-    switch (scalingBox.direction) {
+    switch(scalingBox.direction) {
       case 'top left':
       case 'bottom left':
         isGrow = distanceX < 0;
@@ -407,7 +407,7 @@ export function useDraggableBox() {
     const absoluteDistanceX = Math.abs(distanceX) * factor;
     const aspectRatio = scalingBox.startSize.width / scalingBox.startSize.height;
 
-    if (isGrow) {
+    if(isGrow) {
       newWidth = scalingBox.startSize.width + absoluteDistanceX;
     }
     else {
@@ -435,7 +435,7 @@ export function useDraggableBox() {
     const box = draggingBox.box;
     const parent = parentMap.get(box.el);
 
-    if (!parent) {
+    if(!parent) {
       return;
     }
 
@@ -448,15 +448,15 @@ export function useDraggableBox() {
     const horizonTreshold = 8;
     const newBoxCenter = {
       x: x + box.position.width / 2,
-      y: y + box.position.height / 2,
+      y: y + box.position.height / 2
     };
     const parentCenter = {
       x: parent.rect.width / 2,
-      y: parent.rect.height / 2,
+      y: parent.rect.height / 2
     };
 
-    if (box.creationAttributes.horizons) {
-      if (newBoxCenter.x > parentCenter.x - horizonTreshold && newBoxCenter.x < parentCenter.x + horizonTreshold) {
+    if(box.creationAttributes.horizons) {
+      if(newBoxCenter.x > parentCenter.x - horizonTreshold && newBoxCenter.x < parentCenter.x + horizonTreshold) {
         showHorizon('drag-center-horizontal', parent, parentCenter.x, pointInParent.y);
 
         x = parentCenter.x - box.position.width / 2;
@@ -465,7 +465,7 @@ export function useDraggableBox() {
         hideHorizon(parentMap.get(box.el)!, 'drag-center-horizontal');
       }
 
-      if (newBoxCenter.y > parentCenter.y - horizonTreshold && newBoxCenter.y < parentCenter.y + horizonTreshold) {
+      if(newBoxCenter.y > parentCenter.y - horizonTreshold && newBoxCenter.y < parentCenter.y + horizonTreshold) {
         showHorizon('drag-center-vertical', parent, pointInParent.x, parentCenter.y);
 
         y = parentCenter.y - box.position.height / 2;
@@ -492,7 +492,7 @@ export function useDraggableBox() {
       'rotate-positive45',
       'rotate-negative45',
       'drag-center-vertical',
-      'drag-center-horizontal',
+      'drag-center-horizontal'
     ].forEach((type) => {
       const horizon = document.createElement('div');
 
@@ -501,7 +501,7 @@ export function useDraggableBox() {
       horizonWrapper.appendChild(horizon);
 
       horizons.set(type, {
-        element: horizon,
+        element: horizon
       });
     });
 
@@ -515,12 +515,12 @@ export function useDraggableBox() {
       horizonElement.addEventListener('animationend', () => {
         horizonElement.classList.remove(CSS.horizonAnimateOut);
         horizonElement.style.display = 'none';
-      }, { once: true });
+      }, {once: true});
     }
 
-    if (!type) {
-      parent.horizons.forEach(({ element }) => {
-        if (element.style.display === 'none') {
+    if(!type) {
+      parent.horizons.forEach(({element}) => {
+        if(element.style.display === 'none') {
           return;
         }
 
@@ -532,7 +532,7 @@ export function useDraggableBox() {
 
     const horizon = parent.horizons.get(type);
 
-    if (horizon && horizon.element.style.display !== 'none') {
+    if(horizon && horizon.element.style.display !== 'none') {
       fadeOut(horizon.element);
     }
   }
@@ -540,9 +540,9 @@ export function useDraggableBox() {
   function showHorizon(type: 'rotate-horizontal' | 'rotate-vertical' | 'rotate-positive45' | 'rotate-negative45' | 'drag-center-vertical' | 'drag-center-horizontal', parent: DraggableBoxParent, x: number, y: number) {
     const horizon = parent.horizons.get(type);
 
-    const { element } = horizon!;
+    const {element} = horizon!;
 
-    switch (type) {
+    switch(type) {
       case 'rotate-horizontal':
         element.style.top = `${y}px`;
         break;
@@ -569,7 +569,7 @@ export function useDraggableBox() {
     const box = rotatingBox.box;
     const parent = parentMap.get(box.el);
 
-    if (!parent) {
+    if(!parent) {
       return;
     }
 
@@ -591,32 +591,32 @@ export function useDraggableBox() {
 
     const horizonTreshold = 7;
 
-    if (box.creationAttributes.horizons) {
-      if (Math.abs(rotationAngle) < horizonTreshold) {
+    if(box.creationAttributes.horizons) {
+      if(Math.abs(rotationAngle) < horizonTreshold) {
         rotationAngle = 0;
         showHorizon('rotate-horizontal', parent, boxCenterInParent.x, boxCenterInParent.y);
       }
-      else if (Math.abs(rotationAngle) > 90 - horizonTreshold && Math.abs(rotationAngle) < 90 + horizonTreshold) {
+      else if(Math.abs(rotationAngle) > 90 - horizonTreshold && Math.abs(rotationAngle) < 90 + horizonTreshold) {
         rotationAngle = rotationAngle > 0 ? 90 : -90;
         showHorizon('rotate-vertical', parent, boxCenterInParent.x, boxCenterInParent.y);
       }
-      else if (rotationAngle > 45 - horizonTreshold && rotationAngle < 45 + horizonTreshold) {
+      else if(rotationAngle > 45 - horizonTreshold && rotationAngle < 45 + horizonTreshold) {
         rotationAngle = rotationAngle > 0 ? 45 : -45;
         showHorizon('rotate-positive45', parent, boxCenterInParent.x, boxCenterInParent.y);
       }
-      else if (rotationAngle > -45 - horizonTreshold && rotationAngle < -45 + horizonTreshold) {
+      else if(rotationAngle > -45 - horizonTreshold && rotationAngle < -45 + horizonTreshold) {
         rotationAngle = rotationAngle > 0 ? 45 : -45;
         showHorizon('rotate-negative45', parent, boxCenterInParent.x, boxCenterInParent.y);
       }
-      else if (rotationAngle > 135 - horizonTreshold && rotationAngle < 135 + horizonTreshold) {
+      else if(rotationAngle > 135 - horizonTreshold && rotationAngle < 135 + horizonTreshold) {
         rotationAngle = rotationAngle > 0 ? 135 : -135;
         showHorizon('rotate-negative45', parent, boxCenterInParent.x, boxCenterInParent.y);
       }
-      else if (rotationAngle > -135 - horizonTreshold && rotationAngle < -135 + horizonTreshold) {
+      else if(rotationAngle > -135 - horizonTreshold && rotationAngle < -135 + horizonTreshold) {
         rotationAngle = rotationAngle > 0 ? 135 : -135;
         showHorizon('rotate-positive45', parent, boxCenterInParent.x, boxCenterInParent.y);
       }
-      else if (rotationAngle > 180 - horizonTreshold || rotationAngle < -180 + horizonTreshold) {
+      else if(rotationAngle > 180 - horizonTreshold || rotationAngle < -180 + horizonTreshold) {
         rotationAngle = rotationAngle > 0 ? 180 : -180;
         showHorizon('rotate-horizontal', parent, boxCenterInParent.x, boxCenterInParent.y);
       }
@@ -662,39 +662,39 @@ export function useDraggableBox() {
     box.position.y = top;
 
     const mouseMoveListener = (event: MouseEvent) => {
-      if (currentlyScaling) {
+      if(currentlyScaling) {
         scale(currentlyScaling, event);
       }
-      else if (currentlyDragging) {
+      else if(currentlyDragging) {
         drag(currentlyDragging, event);
       }
-      else if (currentlyRotating) {
+      else if(currentlyRotating) {
         rotate(currentlyRotating, event);
       }
     };
 
     const mouseUpListener = () => {
-      if (currentlyScaling) {
+      if(currentlyScaling) {
         endScale(currentlyScaling);
       }
 
-      if (currentlyDragging) {
+      if(currentlyDragging) {
         endDrag(currentlyDragging);
       }
 
-      if (currentlyRotating) {
+      if(currentlyRotating) {
         endRotate(currentlyRotating);
       }
     };
 
     const wholeParent = document.querySelector('.media-editor__left') as HTMLElement;
 
-    wholeParent.addEventListener('mousemove', mouseMoveListener, { passive: true });
-    wholeParent.addEventListener('mouseup', mouseUpListener, { passive: true });
+    wholeParent.addEventListener('mousemove', mouseMoveListener, {passive: true});
+    wholeParent.addEventListener('mouseup', mouseUpListener, {passive: true});
     // parent.addEventListener('mousemove', mouseMoveListener);
     // parent.addEventListener('mouseup', mouseUpListener);
 
-    if (parentMap.has(box.el)) {
+    if(parentMap.has(box.el)) {
       return;
     }
 
@@ -703,7 +703,7 @@ export function useDraggableBox() {
       mouseMoveListener,
       mouseUpListener,
       rect: parent.getBoundingClientRect(),
-      horizons: box.creationAttributes.horizons ? prepareHorizons(parent) : new Map(),
+      horizons: box.creationAttributes.horizons ? prepareHorizons(parent) : new Map()
     });
   }
 
@@ -720,7 +720,7 @@ export function useDraggableBox() {
 
     corner.appendChild(scaler);
 
-    if (rotatable) {
+    if(rotatable) {
       corner.appendChild(rotator);
     }
 
@@ -744,12 +744,12 @@ export function useDraggableBox() {
       direction,
       startPoint: {
         pageX: event.pageX,
-        pageY: event.pageY,
+        pageY: event.pageY
       },
       startSize: {
         width: originalWidth,
-        height: originalHeight,
-      },
+        height: originalHeight
+      }
     };
   }
 
@@ -772,7 +772,7 @@ export function useDraggableBox() {
 
   function getRotationAngle(element: HTMLElement): number {
     const transform = getComputedStyle(element).transform;
-    if (transform && transform !== 'none') {
+    if(transform && transform !== 'none') {
       const values = transform.split('(')[1].split(')')[0].split(',');
       const a = Number.parseFloat(values[0]);
       const b = Number.parseFloat(values[1]);
@@ -784,7 +784,7 @@ export function useDraggableBox() {
   function beginDrag(box: DraggableBox, event: MouseEvent) {
     const parent = parentMap.get(box.el);
 
-    if (!parent) {
+    if(!parent) {
       return;
     }
 
@@ -799,8 +799,8 @@ export function useDraggableBox() {
       box,
       startOffsetWithinBox: {
         x,
-        y,
-      },
+        y
+      }
     };
     box.el.classList.add(CSS.draggableBoxDragging);
   }
@@ -837,7 +837,7 @@ export function useDraggableBox() {
 
     currentlyRotating = {
       box,
-      startRotationAngle: startingAngle,
+      startRotationAngle: startingAngle
     };
   }
 
@@ -859,16 +859,16 @@ export function useDraggableBox() {
       const relativeX = cornerCenterX - boxCenterX;
       const relativeY = cornerCenterY - boxCenterY;
 
-      if (relativeX <= 0 && relativeY <= 0) {
+      if(relativeX <= 0 && relativeY <= 0) {
         corner.setAttribute('data-direction', 'top left');
       }
-      else if (relativeX > 0 && relativeY <= 0) {
+      else if(relativeX > 0 && relativeY <= 0) {
         corner.setAttribute('data-direction', 'top right');
       }
-      else if (relativeX <= 0 && relativeY > 0) {
+      else if(relativeX <= 0 && relativeY > 0) {
         corner.setAttribute('data-direction', 'bottom left');
       }
-      else if (relativeX > 0 && relativeY > 0) {
+      else if(relativeX > 0 && relativeY > 0) {
         corner.setAttribute('data-direction', 'bottom right');
       }
     });
@@ -879,7 +879,7 @@ export function useDraggableBox() {
   function removeBox(box: DraggableBox) {
     const parent = parentMap.get(box.el);
 
-    if (!parent) {
+    if(!parent) {
       return;
     }
 
@@ -888,15 +888,15 @@ export function useDraggableBox() {
 
     box.el.remove();
 
-    if (currentlyDragging?.box === box) {
+    if(currentlyDragging?.box === box) {
       currentlyDragging = null;
     }
 
-    if (currentlyScaling?.box === box) {
+    if(currentlyScaling?.box === box) {
       currentlyScaling = null;
     }
 
-    if (currentlyRotating?.box === box) {
+    if(currentlyRotating?.box === box) {
       currentlyRotating = null;
     }
   }
@@ -925,7 +925,7 @@ export function useDraggableBox() {
   function restoreBoxPosition(box: DraggableBox) {
     const parent = parentMap.get(box.el);
 
-    if (!parent) {
+    if(!parent) {
       return;
     }
 
@@ -995,7 +995,7 @@ export function useDraggableBox() {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
-    if (!ctx) {
+    if(!ctx) {
       console.error('Failed to get canvas context');
       return canvas;
     }
@@ -1027,7 +1027,7 @@ export function useDraggableBox() {
     const alignment = box.meta.alignment;
     const style = box.meta.style;
 
-    if (boxBackgroundShape) {
+    if(boxBackgroundShape) {
       const svgString = new XMLSerializer().serializeToString(boxBackgroundShape);
 
       const img = await loadSvgImage(`data:image/svg+xml,${encodeURIComponent(svgString)}`);
@@ -1039,7 +1039,7 @@ export function useDraggableBox() {
 
     boxTextLines.forEach((line) => {
       const text = line.textContent;
-      if (!text) {
+      if(!text) {
         return;
       }
 
@@ -1057,14 +1057,14 @@ export function useDraggableBox() {
       let textLeftOffset = boxPaddingLeft + linePaddingLeft;
       const textTopOffset = yOffset + linePaddingTop + textLineHeightSpaces;
 
-      if (alignment === 'right') {
+      if(alignment === 'right') {
         textLeftOffset = canvas.width - boxPaddingLeft - linePaddingLeft - textMetrics.width;
       }
-      else if (alignment === 'center') {
+      else if(alignment === 'center') {
         textLeftOffset = (canvas.width - textMetrics.width) / 2;
       }
 
-      if (style === 'stroked') {
+      if(style === 'stroked') {
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 5 * scaleFactor;
         ctx.strokeText(text, boxPaddingLeft + linePaddingLeft, textTopOffset);
@@ -1086,11 +1086,11 @@ export function useDraggableBox() {
 
     el.classList.add(`${CSS.draggableBox}--${attributes?.style ?? 'dashed'}`);
 
-    if (attributes?.width) {
+    if(attributes?.width) {
       el.style.width = `${attributes.width}px`;
     }
 
-    if (attributes?.height) {
+    if(attributes?.height) {
       el.style.height = `${attributes.height}px`;
     }
 
@@ -1098,7 +1098,7 @@ export function useDraggableBox() {
       createBoxCorner('top left', attributes?.rotatable),
       createBoxCorner('top right', attributes?.rotatable),
       createBoxCorner('bottom left', attributes?.rotatable),
-      createBoxCorner('bottom right', attributes?.rotatable),
+      createBoxCorner('bottom right', attributes?.rotatable)
     ];
 
     corners.forEach(corner => el.appendChild(corner));
@@ -1116,12 +1116,12 @@ export function useDraggableBox() {
         y: 0,
         width: attributes?.width ?? 0,
         height: attributes?.height ?? 0,
-        rotationAngle: 0,
+        rotationAngle: 0
       },
       meta: {
         color: '#fff',
         alignment: 'left',
-        style: 'regular',
+        style: 'regular'
       },
       setMeta: (key: keyof TextBoxMeta, value: string) => {
         box.meta[key] = value;
@@ -1163,7 +1163,7 @@ export function useDraggableBox() {
       },
       export: (scaleFactor: number) => {
         return exportBoxToCanvas(box, scaleFactor);
-      },
+      }
     };
 
     el.addEventListener('mousedown', (event) => {
@@ -1173,12 +1173,12 @@ export function useDraggableBox() {
       const isRotatorClicked = (event.target as HTMLElement).classList.contains(CSS.draggableBoxRotator);
       const isScalerClicked = (event.target as HTMLElement).classList.contains(CSS.draggableBoxCorner) || (event.target as HTMLElement).classList.contains(CSS.draggableBoxScaler);
 
-      if (isRotatorClicked) {
+      if(isRotatorClicked) {
         beginRotate(box, event);
         return;
       }
 
-      if (isScalerClicked) {
+      if(isScalerClicked) {
         const corner = (event.target as HTMLElement).closest(`.${CSS.draggableBoxCorner}`) as HTMLElement;
         const direction = corner.dataset.direction as DraggableBoxDirection;
 
@@ -1205,6 +1205,6 @@ export function useDraggableBox() {
 
   return {
     create,
-    destroy,
+    destroy
   };
 }

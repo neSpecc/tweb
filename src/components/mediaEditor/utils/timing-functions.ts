@@ -2,7 +2,7 @@
  * @example const bezier = cubicBezier(0.21, 0.48, 0.31, 1.13);
  */
 export function cubicBezier(p1x: number, p1y: number, p2x: number, p2y: number): (t: number) => number {
-  return function (t: number) {
+  return function(t: number) {
     const cx = 3 * p1x;
     const bx = 3 * (p2x - p1x) - cx;
     const ax = 1 - cx - bx;
@@ -31,13 +31,13 @@ export function cubicBezier(p1x: number, p1y: number, p2x: number, p2y: number):
       let i;
 
       // First try a few iterations of Newton's method -- normally very fast.
-      for (t2 = x, i = 0; i < 8; i++) {
+      for(t2 = x, i = 0; i < 8; i++) {
         x2 = sampleCurveX(t2) - x;
-        if (Math.abs(x2) < epsilon) {
+        if(Math.abs(x2) < epsilon) {
           return t2;
         }
         d2 = sampleCurveDerivativeX(t2);
-        if (Math.abs(d2) < epsilon) {
+        if(Math.abs(d2) < epsilon) {
           break;
         }
         t2 -= x2 / d2;
@@ -48,19 +48,19 @@ export function cubicBezier(p1x: number, p1y: number, p2x: number, p2y: number):
       t1 = 1;
       t2 = x;
 
-      if (t2 < t0) {
+      if(t2 < t0) {
         return t0;
       }
-      if (t2 > t1) {
+      if(t2 > t1) {
         return t1;
       }
 
-      while (t0 < t1) {
+      while(t0 < t1) {
         x2 = sampleCurveX(t2);
-        if (Math.abs(x2 - x) < epsilon) {
+        if(Math.abs(x2 - x) < epsilon) {
           return t2;
         }
-        if (x > x2) {
+        if(x > x2) {
           t0 = t2;
         }
         else {
