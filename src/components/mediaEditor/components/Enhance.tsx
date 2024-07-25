@@ -1,7 +1,6 @@
 import type { Accessor } from 'solid-js';
 import { For, createSignal, onCleanup, onMount } from 'solid-js';
-import { useFilters } from '../services/useFilters';
-import type { useCanvasLayers } from '../services/useCanvasLayers';
+import type { CanvasLayer, useCanvasLayers } from '../services/useCanvasLayers';
 
 interface EnhanceProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
@@ -34,14 +33,27 @@ function Enhance(props: EnhanceProps) {
     ['sharpen', 'Sharpen', [0, 100], sharpen, setSharpen],
   ] as [string, string, [number, number], Accessor<number>, (value: number) => void][];
 
-  const { applyFilter, restoreFilters } = useFilters();
-
   function init() {
-    console.log('Enhance init');
+    if (!props.layerMaganer()) {
+
+    }
+
+    // const layer = props.layerMaganer().getBaseCanvasLayer();
+
+    // setBrightness(layer.state.filters.brightness);
+    // setContrast(layer.state.filters.contrast);
+    // setSaturation(layer.state.filters.saturation);
+    // setWarmth(layer.state.filters.warmth);
+    // setFade(layer.state.filters.fade);
+    // setHighlights(layer.state.filters.highlights);
+    // setShadows(layer.state.filters.shadows);
+    // setVignette(layer.state.filters.vignette);
+    // setGrain(layer.state.filters.grain);
+    // setSharpen(layer.state.filters.sharpen);
+    // setEnhance(layer.state.filters.enhance);
   }
 
   function destroy() {
-    console.log('Enhance destroy');
   }
 
   onMount(() => {
@@ -49,6 +61,9 @@ function Enhance(props: EnhanceProps) {
   });
 
   onCleanup(() => {
+    const layer = props.layerMaganer().getBaseCanvasLayer();
+
+    layer.save();
     destroy();
   });
 
@@ -58,7 +73,7 @@ function Enhance(props: EnhanceProps) {
     }
 
     const input = e.target as HTMLInputElement;
-    const filterName = input.dataset.name;
+    const filterName = input.dataset.name as keyof CanvasLayer['state']['filters'];
     const newValue = Number.parseInt(input.value);
 
     if (filterName === undefined) {
@@ -71,16 +86,7 @@ function Enhance(props: EnhanceProps) {
 
     const layer = props.layerMaganer().getBaseCanvasLayer();
 
-    layer.redraw();
-
-    /**
-     * @todo optimize
-     */
-    restoreFilters(layer.canvas, filterName);
-
-    applyFilter(layer.canvas, filterName, newValue);
-
-    layer.save();
+    layer.applyFilter(filterName, newValue);
   };
 
   return (
@@ -100,7 +106,7 @@ function Enhance(props: EnhanceProps) {
                   id={effect.toString()}
                   min={min}
                   max={max}
-                  value="0"
+                  value={signal()}
                   onInput={handleFilterChange}
                 />
               </div>

@@ -1,7 +1,8 @@
-import type {Accessor} from 'solid-js';
-import {createSignal, onCleanup, onMount} from 'solid-js';
-import type {DivLayer, useCanvasLayers} from '../services/useCanvasLayers';
-import {useTextTool} from '../services/useTextTool';
+import type { Accessor } from 'solid-js';
+import { createSignal, onCleanup, onMount } from 'solid-js';
+import type { DivLayer, useCanvasLayers } from '../services/useCanvasLayers';
+import { useTextTool } from '../services/useTextTool';
+import Icon from '../utils/icon';
 import ColorSelector from './ColorSelector';
 
 interface TextToolProps {
@@ -16,16 +17,16 @@ export default function TextTool(props: TextToolProps) {
   const [fontSize, setFontSize] = createSignal<number>(45);
   const [font, setFont] = createSignal<number>(0);
 
-  const alignments: ('left' | 'center' | 'right')[] = [
-    'left',
-    'center',
-    'right'
+  const alignments: ['left' | 'center' | 'right', HTMLElement][] = [
+    ['left', Icon('align-left')],
+    ['center', Icon('align-center')],
+    ['right', Icon('align-right')],
   ];
 
-  const textStyles: ('regular' | 'stroked' | 'backgrounded')[] = [
-    'regular',
-    'stroked',
-    'backgrounded'
+  const textStyles: ['regular' | 'stroked' | 'backgrounded', HTMLElement][] = [
+    ['regular', Icon('font-frame-no')],
+    ['stroked', Icon('font-frame-black')],
+    ['backgrounded', Icon('font-frame-white')],
   ];
 
   const fonts = [
@@ -36,7 +37,7 @@ export default function TextTool(props: TextToolProps) {
     'Noteworthy',
     'Georgia',
     'Papyrus',
-    'Snell Roundhand'
+    'Snell Roundhand',
   ];
 
   function init() {
@@ -45,7 +46,7 @@ export default function TextTool(props: TextToolProps) {
     /**
      * Initialize text layer if it is  not already initialized
      */
-    if(layer === undefined) {
+    if (layer === undefined) {
       layer = props.layerMaganer().createDivLayer();
 
       setTextLayer(layer);
@@ -55,7 +56,7 @@ export default function TextTool(props: TextToolProps) {
       layer,
       onFontSizeChange: (value) => {
         setFontSize(value);
-      }
+      },
     });
 
     tool.init();
@@ -93,12 +94,12 @@ export default function TextTool(props: TextToolProps) {
 
   function setStyle(index: number) {
     setTextStyle(index);
-    textTool()?.setStyle(textStyles[index]);
+    textTool()?.setStyle(textStyles[index][0]);
   }
 
   function alignmentChanged(index: number) {
     setAlignment(index);
-    textTool()?.setAlignment(alignments[index]);
+    textTool()?.setAlignment(alignments[index][0]);
   }
 
   return (
@@ -108,28 +109,28 @@ export default function TextTool(props: TextToolProps) {
       />
       <div class="pe-text__style">
         <div class="pe-text__style-section">
-          {alignments.map((align, index) => (
+          {alignments.map(([_, icon], index) => (
             <div
               classList={{
                 'pe-text__style-section-item': true,
-                'pe-text__style-section-item--selected': alignment() === index
+                'pe-text__style-section-item--selected': alignment() === index,
               }}
               onClick={_ => alignmentChanged(index)}
             >
-              <span class="tmp-icon"></span>
+              { icon }
             </div>
           ))}
         </div>
         <div class="pe-text__style-section">
-          {textStyles.map((style, index) => (
+          {textStyles.map(([_, icon], index) => (
             <div
               classList={{
                 'pe-text__style-section-item': true,
-                'pe-text__style-section-item--selected': textStyle() === index
+                'pe-text__style-section-item--selected': textStyle() === index,
               }}
               onClick={_ => setStyle(index)}
             >
-              <span class="tmp-icon"></span>
+              { icon }
             </div>
           ))}
         </div>
@@ -155,7 +156,7 @@ export default function TextTool(props: TextToolProps) {
           <div
             classList={{
               'pe-settings-row': true,
-              'pe-settings-row--selected': font() === index
+              'pe-settings-row--selected': font() === index,
             }}
             onClick={_ => selectFont(index)}
           >

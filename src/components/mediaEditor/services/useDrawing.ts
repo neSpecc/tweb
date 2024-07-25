@@ -6,11 +6,19 @@ export type DrawingTool = 'pen' | 'brush' | 'arrow' | 'neon' | 'blur' | 'eraser'
 
 interface Point { x: number; y: number }
 
-export function useDrawing() {
-  let canvas: HTMLCanvasElement | null = null;
-  let offscreenCanvas: HTMLCanvasElement | null = null;
-  let offscreenContext: CanvasRenderingContext2D | null = null;
-  let originalImageData: ImageData | null = null;
+interface UseDrawingParams {
+  originalImageOffscreenCanvas: OffscreenCanvas;
+  imageData: ImageData;
+  visibleCanvas: HTMLCanvasElement;
+  onDraw: () => void;
+}
+
+export function useDrawing(params: UseDrawingParams) {
+  const { originalImageOffscreenCanvas, imageData, visibleCanvas } = params;
+
+  const offscreenCanvas = originalImageOffscreenCanvas;
+  const offscreenContext = offscreenCanvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
+
   let blurredCanvas: HTMLCanvasElement | null = null;
   let worker: Worker | null = null;
 
@@ -20,9 +28,26 @@ export function useDrawing() {
     color: '#ffffff',
     brushSize: 15,
     tool: 'pen',
-    offscreenCanvasScale: 2,
     points: [] as Point[],
   };
+
+  /**
+   * Return the coordinates of the mouse event relative to the offscreen canvas
+   */
+  function getCoordinates(event: MouseEvent): Point {
+    const visibleWidth = visibleCanvas.width;
+    const visibleHeight = visibleCanvas.height;
+    const offscreenWidth = offscreenCanvas.width;
+    const offscreenHeight = offscreenCanvas.height;
+
+    const scaleX = offscreenWidth / visibleWidth;
+    const scaleY = offscreenHeight / visibleHeight;
+
+    const x = event.offsetX * scaleX;
+    const y = event.offsetY * scaleY;
+
+    return { x, y };
+  }
 
   function drawByPen(event: MouseEvent) {
     if (!drawingOptions.isDrawing) {
@@ -33,17 +58,17 @@ export function useDrawing() {
       throw new Error('Offscreen context is not initialized');
     }
 
-    const scale = drawingOptions.offscreenCanvasScale;
+    const { x, y } = getCoordinates(event);
 
-    offscreenContext.lineWidth = drawingOptions.brushSize * scale;
+    offscreenContext.lineWidth = drawingOptions.brushSize;
     offscreenContext.lineCap = 'round';
     offscreenContext.strokeStyle = drawingOptions.color;
-    offscreenContext.globalCompositeOperation = 'source-over'; // Ensure default composite operation for pen
+    offscreenContext.globalCompositeOperation = 'source-over';
 
-    offscreenContext.lineTo(event.offsetX * scale, event.offsetY * scale);
+    offscreenContext.lineTo(x, y);
     offscreenContext.stroke();
     offscreenContext.beginPath();
-    offscreenContext.moveTo(event.offsetX * scale, event.offsetY * scale);
+    offscreenContext.moveTo(x, y);
   }
 
   function drawByBrush(event: MouseEvent) {
@@ -51,12 +76,7 @@ export function useDrawing() {
       return;
     }
 
-    if (offscreenContext === null || canvas === null || offscreenCanvas === null) {
-      throw new Error('Offscreen context is not initialized');
-    }
-
-    const scale = drawingOptions.offscreenCanvasScale;
-    const brushSize = drawingOptions.brushSize * scale;
+    const brushSize = drawingOptions.brushSize;
     const brushColor = drawingOptions.color;
     const opacity = 0.1;
 
@@ -64,8 +84,7 @@ export function useDrawing() {
     const radiusX = brushSize;
     const radiusY = brushSize / 3;
 
-    const x = event.offsetX * scale;
-    const y = event.offsetY * scale;
+    const { x, y } = getCoordinates(event);
 
     drawingOptions.points.push({ x, y });
 
@@ -94,15 +113,6 @@ export function useDrawing() {
     else {
       drawBrushDot(x, y, opacity / 20);
     }
-
-    const context = canvas.getContext('2d');
-    if (context) {
-      context.drawImage(offscreenCanvas, 0, 0, offscreenCanvas.width / scale, offscreenCanvas.height / scale, 0, 0, canvas.width, canvas.height);
-    }
-  }
-
-  function scaleCoord(xOrY: number): number {
-    return xOrY * drawingOptions.offscreenCanvasScale;
   }
 
   function drawByArrow(event: MouseEvent): void {
@@ -110,16 +120,9 @@ export function useDrawing() {
       return;
     }
 
-    if (canvas === null || offscreenCanvas === null || offscreenContext === null) {
-      throw new Error('Canvas or offscreen canvas is not initialized');
-    }
+    const { x, y } = getCoordinates(event);
 
-    const scale = drawingOptions.offscreenCanvasScale;
-
-    const x = event.offsetX * scale;
-    const y = event.offsetY * scale;
-
-    offscreenContext.lineWidth = drawingOptions.brushSize * scale; // Adjust brush size for scale
+    offscreenContext.lineWidth = drawingOptions.brushSize;
     offscreenContext.lineCap = 'round';
     offscreenContext.lineJoin = 'round';
     offscreenContext.strokeStyle = drawingOptions.color;
@@ -129,7 +132,7 @@ export function useDrawing() {
       y,
     });
 
-    const epsilon = 2 * scale;
+    const epsilon = 2;
     const filteredPoints = ramerDouglasPeucker(drawingOptions.points, epsilon);
 
     offscreenContext.beginPath();
@@ -140,11 +143,6 @@ export function useDrawing() {
     }
 
     offscreenContext.stroke();
-
-    const context = canvas.getContext('2d');
-    if (context) {
-      context.drawImage(offscreenCanvas, 0, 0, offscreenCanvas.width / scale, offscreenCanvas.height / scale, 0, 0, canvas.width, canvas.height);
-    }
   }
 
   function drawByNeon(event: MouseEvent): void {
@@ -152,33 +150,23 @@ export function useDrawing() {
       return;
     }
 
-    if (canvas === null || offscreenCanvas === null || offscreenContext === null) {
-      throw new Error('Canvas or offscreen canvas is not initialized');
-    }
+    const { x, y } = getCoordinates(event);
 
-    const scale = drawingOptions.offscreenCanvasScale;
-
-    const x = event.offsetX * scale;
-    const y = event.offsetY * scale;
-
-    offscreenContext.lineWidth = drawingOptions.brushSize * scale; // Adjust brush size for scale
+    offscreenContext.lineWidth = drawingOptions.brushSize;
     offscreenContext.lineCap = 'round';
-
-    // neon effect is white line with colorful glow
     offscreenContext.strokeStyle = '#ffffff';
 
-    // smooth line join
     offscreenContext.lineJoin = 'round';
 
     offscreenContext.shadowColor = `rgba(${hexToRgb(drawingOptions.color)}, 0.3)`;
-    offscreenContext.shadowBlur = drawingOptions.brushSize * scale;
+    offscreenContext.shadowBlur = drawingOptions.brushSize;
 
     drawingOptions.points.push({
       x,
       y,
     });
 
-    const epsilon = 2 * scale;
+    const epsilon = 2;
     const filteredPoints = ramerDouglasPeucker(drawingOptions.points, epsilon);
 
     offscreenContext.beginPath();
@@ -190,39 +178,25 @@ export function useDrawing() {
 
     offscreenContext.stroke();
 
-    const context = canvas.getContext('2d');
-    if (context) {
-      context.drawImage(offscreenCanvas, 0, 0, offscreenCanvas.width / scale, offscreenCanvas.height / scale, 0, 0, canvas.width, canvas.height);
-    }
-
     offscreenContext.shadowBlur = 0;
     offscreenContext.shadowColor = 'transparent';
   }
 
   function drawByBlur(event: MouseEvent): void {
-    if (!drawingOptions.isDrawing || blurredCanvas === null || offscreenCanvas === null || canvas === null || offscreenContext === null) {
+    if (!drawingOptions.isDrawing || blurredCanvas === null) {
       return;
     }
 
-    if (offscreenContext === null || canvas === null) {
-      throw new Error('Offscreen context or canvas is not initialized');
-    }
+    const { x, y } = getCoordinates(event);
 
-    const scale = drawingOptions.offscreenCanvasScale;
-
-    offscreenContext.lineWidth = drawingOptions.brushSize * scale;
+    offscreenContext.lineWidth = drawingOptions.brushSize;
     offscreenContext.lineCap = 'round';
 
     offscreenContext.strokeStyle = offscreenContext.createPattern(blurredCanvas, 'no-repeat') as CanvasPattern;
-    offscreenContext.lineTo(event.offsetX * scale, event.offsetY * scale);
+    offscreenContext.lineTo(x, y);
     offscreenContext.stroke();
     offscreenContext.beginPath();
-    offscreenContext.moveTo(event.offsetX * scale, event.offsetY * scale);
-
-    const context = canvas.getContext('2d');
-    if (context) {
-      context.drawImage(offscreenCanvas, 0, 0, offscreenCanvas.width / scale, offscreenCanvas.height / scale, 0, 0, canvas.width, canvas.height);
-    }
+    offscreenContext.moveTo(x, y);
   }
 
   function drawByEraser(event: MouseEvent): void {
@@ -230,43 +204,21 @@ export function useDrawing() {
       return;
     }
 
-    if (offscreenContext === null) {
-      throw new Error('Offscreen context is not initialized');
-    }
+    const { x, y } = getCoordinates(event);
 
-    const scale = drawingOptions.offscreenCanvasScale;
-
-    offscreenContext.lineWidth = drawingOptions.brushSize * scale;
+    offscreenContext.globalCompositeOperation = 'destination-out';
+    offscreenContext.lineWidth = drawingOptions.brushSize;
     offscreenContext.lineCap = 'round';
-    offscreenContext.globalCompositeOperation = 'destination-out'; // Set composite operation for erasing
 
-    offscreenContext.lineTo(event.offsetX * scale, event.offsetY * scale);
+    console.log(`Global Composite Operation: ${offscreenContext.globalCompositeOperation}`);
+
+    offscreenContext.lineTo(x, y);
     offscreenContext.stroke();
     offscreenContext.beginPath();
-    offscreenContext.moveTo(event.offsetX * scale, event.offsetY * scale);
+    offscreenContext.moveTo(x, y);
+    offscreenContext.closePath();
+
     offscreenContext.globalCompositeOperation = 'source-over';
-
-    // layer.savedImageData = offscreenContext.getImageData(0, 0, layer.offscreenCanvas.width, layer.offscreenCanvas.height);
-  }
-
-  function mergeCanvases() {
-    if (canvas === null || offscreenCanvas === null || originalImageData === null) {
-      throw new Error('Canvas, offscreen canvas, or original image data is not initialized');
-    }
-
-    const mainContext = canvas.getContext('2d');
-
-    if (mainContext === null) {
-      throw new Error('Main context is not initialized');
-    }
-
-    // Ensure the image is not lost during merging
-    if (originalImageData) {
-      mainContext.putImageData(originalImageData, 0, 0, 0, 0, canvas.width, canvas.height);
-    }
-
-    // mainContext.clearRect(0, 0, canvas.width, canvas.height);
-    mainContext.drawImage(offscreenCanvas, 0, 0, canvas.width, canvas.height);
   }
 
   function draw(event: MouseEvent): void {
@@ -301,14 +253,10 @@ export function useDrawing() {
         break;
     }
 
-    mergeCanvases();
+    params.onDraw();
   }
 
   function prepareBlurCanvas(blurredImageData: ImageData): void {
-    if (offscreenContext === null || offscreenCanvas === null || canvas === null) {
-      throw new Error('Offscreen context or canvas is not initialized');
-    }
-
     const bCanvas = document.createElement('canvas');
     const bContext = bCanvas.getContext('2d');
 
@@ -332,7 +280,10 @@ export function useDrawing() {
     drawingOptions.isDrawing = true;
 
     offscreenContext.beginPath();
-    offscreenContext.moveTo(event.offsetX * drawingOptions.offscreenCanvasScale, event.offsetY * drawingOptions.offscreenCanvasScale);
+
+    const { x, y } = getCoordinates(event);
+
+    offscreenContext.moveTo(x, y);
   }
 
   function endDrawDefault(): void {
@@ -342,10 +293,6 @@ export function useDrawing() {
   function endDrawArrow(): void {
     if (!drawingOptions.points.length) {
       return;
-    }
-
-    if (canvas === null || offscreenCanvas === null || offscreenContext === null) {
-      throw new Error('Canvas, offscreen canvas, or offscreen context is not initialized');
     }
 
     drawingOptions.isAnimating = true;
@@ -365,9 +312,12 @@ export function useDrawing() {
     dy /= totalPoints - 1;
 
     const angle = Math.atan2(dy, dx);
-    const arrowLength = Math.max(4 * drawingOptions.brushSize * drawingOptions.offscreenCanvasScale, 15);
-    const perpendicularAngle1 = angle + Math.PI / 4; // 45 degrees to one side
-    const perpendicularAngle2 = angle - Math.PI / 4; // 45 degrees to the other side
+    const arrowLength = Math.max(4 * drawingOptions.brushSize, 15);
+    /**
+     * 45 degree to both sides of the direction
+     */
+    const perpendicularAngle1 = angle + Math.PI / 4;
+    const perpendicularAngle2 = angle - Math.PI / 4;
 
     const lastPoint = points[points.length - 1];
     const arrowPoint1 = {
@@ -380,24 +330,17 @@ export function useDrawing() {
       y: lastPoint.y - arrowLength * Math.sin(perpendicularAngle2),
     };
 
-    offscreenContext.lineWidth = drawingOptions.brushSize * drawingOptions.offscreenCanvasScale;
+    offscreenContext.lineWidth = drawingOptions.brushSize;
 
     const savedImageData = offscreenContext.getImageData(0, 0, offscreenCanvas.width, offscreenCanvas.height);
 
     offscreenContext.globalCompositeOperation = 'source-over';
 
-    // Cubic Bezier easing function
     const easing = cubicBezier(0.72, 0.46, 0.26, 1.04);
-
-    // Animation parameters
-    const animationDuration = 300; // Duration in milliseconds
+    const animationDuration = 300;
     const startTime = performance.now();
 
     function animateArrow() {
-      if (canvas === null || offscreenCanvas === null || offscreenContext === null) {
-        throw new Error('Canvas, offscreen canvas, or offscreen context is not initialized');
-      }
-
       const currentTime = performance.now();
       const elapsedTime = currentTime - startTime;
       const t = Math.min(elapsedTime / animationDuration, 1);
@@ -422,12 +365,7 @@ export function useDrawing() {
       offscreenContext.lineTo(currentArrowPoint2.x, currentArrowPoint2.y);
       offscreenContext.stroke();
 
-      // Copy the offscreen canvas to the visible canvas
-      const context = canvas.getContext('2d');
-      if (context) {
-        // context.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
-        context.drawImage(offscreenCanvas, 0, 0, canvas.width, canvas.height);
-      }
+      params.onDraw();
 
       if (t < 1) {
         requestAnimationFrame(animateArrow);
@@ -456,6 +394,8 @@ export function useDrawing() {
         break;
     }
 
+    params.onDraw();
+
     drawingOptions.points = [];
   }
 
@@ -477,33 +417,20 @@ export function useDrawing() {
   }
 
   function setBrushSize(size: number): void {
-    drawingOptions.brushSize = size;
+    drawingOptions.brushSize = size * 2;
   }
 
   function setTool(tool: DrawingTool): void {
     drawingOptions.tool = tool;
   }
 
-  function init(targetCanvas: HTMLCanvasElement, image: ImageData): void {
-    canvas = targetCanvas;
-    originalImageData = image;
-
-    offscreenCanvas = document.createElement('canvas');
-    offscreenContext = offscreenCanvas.getContext('2d') as CanvasRenderingContext2D;
-    offscreenCanvas.width = canvas.width * drawingOptions.offscreenCanvasScale;
-    offscreenCanvas.height = canvas.height * drawingOptions.offscreenCanvasScale;
-
-    // Draw the original image data onto the offscreen canvas
-    const offscreenTempCanvas = document.createElement('canvas');
-    offscreenTempCanvas.width = image.width;
-    offscreenTempCanvas.height = image.height;
-    const offscreenTempContext = offscreenTempCanvas.getContext('2d');
-    if (offscreenTempContext) {
-      offscreenTempContext.putImageData(image, 0, 0);
-      offscreenContext.drawImage(offscreenTempCanvas, 0, 0, image.width, image.height, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
-    }
-
+  function init(): void {
     worker = new Worker(new URL('./DrawingWorker.js', import.meta.url));
+
+    visibleCanvas.addEventListener('mousedown', drawMouseDown);
+    visibleCanvas.addEventListener('mousemove', drawMouseMove);
+    visibleCanvas.addEventListener('mouseup', drawMouseUp);
+    visibleCanvas.addEventListener('mouseout', drawMouseUp);
 
     worker.onmessage = (event: MessageEvent<{ command: 'blur'; payload: { image: ImageData } }>) => {
       const { command, payload } = event.data;
@@ -516,36 +443,23 @@ export function useDrawing() {
       }
     };
 
-    const imageData = offscreenContext.getImageData(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-
     worker.postMessage({ command: 'blur', payload: {
       image: imageData,
-      width: offscreenCanvas.width,
-      height: offscreenCanvas.height,
+      width: originalImageOffscreenCanvas.width,
+      height: originalImageOffscreenCanvas.height,
       radius: 50,
     } });
-
-    canvas.addEventListener('mousedown', drawMouseDown);
-    canvas.addEventListener('mousemove', drawMouseMove);
-    canvas.addEventListener('mouseup', drawMouseUp);
-    canvas.addEventListener('mouseout', drawMouseUp);
   }
 
   function destroy() {
-    if (canvas === null) {
-      return;
-    }
+    visibleCanvas.removeEventListener('mousedown', drawMouseDown);
+    visibleCanvas.removeEventListener('mousemove', drawMouseMove);
+    visibleCanvas.removeEventListener('mouseup', drawMouseUp);
+    visibleCanvas.removeEventListener('mouseout', drawMouseUp);
 
-    canvas.removeEventListener('mousedown', drawMouseDown);
-    canvas.removeEventListener('mousemove', drawMouseMove);
-    canvas.removeEventListener('mouseup', drawMouseUp);
-    canvas.removeEventListener('mouseout', drawMouseUp);
-
-    canvas = null;
-    offscreenCanvas = null;
-    offscreenContext = null;
-    originalImageData = null;
     blurredCanvas = null;
+
+    worker?.terminate();
   }
 
   return {

@@ -9,14 +9,15 @@ import Draw from './components/Draw';
 import Stickers from './components/Stickers';
 import type {LeftZoneControls} from './services/leftZoneControls';
 import {cubicBezier, lerp} from './utils/timing-functions';
+import Icon from '../icon';
 
 function MediaEditor(params: {
   file: File,
   width: number,
   height: number,
 }) {
+  const [originalImage, setOriginalImage] = createSignal<HTMLImageElement>();
   const [layerManager, setLayerManager] = createSignal<ReturnType<typeof useCanvasLayers>>();
-  const [aspectRatio, setAspectRatio] = createSignal<number>(1);
   const [tab, setTab] = createSignal<number>(0);
 
   /**
@@ -55,11 +56,11 @@ function MediaEditor(params: {
   };
 
   const tabs = [
-    '🎨',
-    '✂️',
-    'T',
-    '🖌️',
-    '😃'
+    Icon('enhance'),
+    Icon('crop'),
+    Icon('text'),
+    Icon('brush'),
+    Icon('smile')
   ];
 
   function loadImage({url, onLoad}: { url: string; onLoad: (image: HTMLImageElement) => void }) {
@@ -123,40 +124,51 @@ function MediaEditor(params: {
     requestAnimationFrame(animate);
   }
 
-  function resizeCanvasWrapperToParent(margin = 0, isAnimated = false) {
+  function resizeCanvasWrapperToParent(minMargin = 0, isAnimated = false) {
+    const layer = layerManager()?.getBaseCanvasLayer();
+    const width = layer!.originalImageOffscreenCanvas.width;
+    const height = layer!.originalImageOffscreenCanvas.height;
+
     const leftZoneRect = leftZonePhotoholder.getBoundingClientRect();
     const leftZoneControlsRect = leftZoneControls.element.getBoundingClientRect();
-    let newLeftZonePhotoHolderHeight = window.innerHeight - leftZoneControlsRect.height - margin;
-    let newWidth = newLeftZonePhotoHolderHeight * aspectRatio();
+    const newLeftZonePhotoHolderHeight = leftZoneRect.height - minMargin - leftZoneControlsRect.height;
+    const aspectRatio = width / height;
 
-    const maxWidth = leftZoneRect.width - 20;
-    const maxHeight = window.innerHeight - leftZoneControlsRect.height - margin;
+    let newWidth = newLeftZonePhotoHolderHeight * aspectRatio;
+    let newHeight = newWidth / aspectRatio;
 
-    if(newWidth > maxWidth) {
-      newWidth = maxWidth;
-      newLeftZonePhotoHolderHeight = newWidth / aspectRatio();
+    const maxWidth = Math.min(leftZoneRect.width, originalImage()!.width);
+    const maxHeight = Math.min(leftZoneRect.height - minMargin, originalImage()!.height);
+
+    if(originalImage()!.width > originalImage()!.height) {
+      if(newWidth > maxWidth) {
+        newWidth = maxWidth;
+        newHeight = newWidth / aspectRatio;
+      }
     }
-    else if(newLeftZonePhotoHolderHeight > maxHeight) {
-      newLeftZonePhotoHolderHeight = maxHeight;
-      newWidth = newLeftZonePhotoHolderHeight * aspectRatio();
+    else {
+      if(newHeight > maxHeight) {
+        newHeight = maxHeight;
+        newWidth = newHeight * aspectRatio;
+      }
+    }
+
+    let topOffset = (newLeftZonePhotoHolderHeight + leftZoneControlsRect.height - newHeight) / 2;
+
+    if(minMargin > 0 && minMargin > topOffset) {
+      topOffset = minMargin;
     }
 
     if(isAnimated) {
-      animateResizeCanvasWrapper(newWidth, newLeftZonePhotoHolderHeight, margin);
+      animateResizeCanvasWrapper(newWidth, newHeight, topOffset);
     }
     else {
-      const topOffset = (window.innerHeight - newLeftZonePhotoHolderHeight - leftZoneControlsRect.height) / 2;
-      resizeCanvasWrapper(newWidth, newLeftZonePhotoHolderHeight, topOffset);
+      resizeCanvasWrapper(newWidth, newHeight, topOffset);
     }
   }
 
   function onImageLoad(image: HTMLImageElement) {
-    setAspectRatio(image.width / image.height);
-
-    resizeCanvasWrapperToParent(
-      tab() === 1 ? cropModeMargins : 0,
-      tab() === 1
-    );
+    setOriginalImage(image);
 
     const layerManager = useCanvasLayers({
       wrapperEl: document.getElementById('canvasWrapper') as HTMLElement
@@ -168,17 +180,23 @@ function MediaEditor(params: {
      * Create base layer with the image
      */
     layerManager.createCanvasLayer({
-      bgImage: image
+      image
     });
+    resizeCanvasWrapperToParent(
+
+      tab() === 1 ? cropModeMargins : 0,
+      tab() === 1
+    );
   }
 
-  loadImage({
-    // url: './photo.png',
-    url: URL.createObjectURL(params.file),
-    onLoad: (image) => {
-      onImageLoad(image);
-      URL.revokeObjectURL(image.src);
-    }
+  window.addEventListener('load', () => {
+    loadImage({
+      // url: './vertical.png',
+      // url: './photo.png',
+      // url: './camp.jpeg',
+      url: './small.png',
+      onLoad: onImageLoad
+    });
   });
 
   function windowResizeHandler() {
@@ -201,6 +219,18 @@ function MediaEditor(params: {
     }
   });
 
+  async function saveResult() {
+    const result = await layerManager()!.exportLayers();
+
+    // const link = document.createElement('a');
+    // link.download = 'image.png';
+    // link.href = result.toDataURL('image/png');
+    // link.click();
+
+    document.body.innerHTML = '';
+    document.body.appendChild(result);
+  }
+
   return (
     <>
       <div class="media-editor">
@@ -215,16 +245,22 @@ function MediaEditor(params: {
                 Edit
               </div>
               <div class="navbar__undo">
-                <div class="navbar__undo-undo" />
-                <div class="navbar__undo-redo" />
+                <div class="navbar__undo-undo">
+                  { Icon('undo') }
+                </div>
+                <div class="navbar__undo-redo">
+                  { Icon('redo') }
+                </div>
               </div>
-              <div class="navbar__cross" />
+              <div class="navbar__cross">
+                { Icon('cross') }
+              </div>
             </div>
             <div class="tabs">
               <For each={tabs} fallback={<div />}>
-                {([tabName], index) => (
+                {(tabIcon, index) => (
                   <div class={`tab ${tab() === index() ? 'tab--selected' : ''}`} onClick={() => onTabActivate(index())}>
-                    <span class="tab__icon">{tabName}</span>
+                    <span class="tab__icon">{tabIcon}</span>
                   </div>
                 )}
               </For>
@@ -244,6 +280,7 @@ function MediaEditor(params: {
                   leftZoneControls={leftZoneControls}
                   resizeCanvasWrapper={resizeCanvasWrapper}
                   animateResizeCanvasWrapper={animateResizeCanvasWrapper}
+                  resizeCanvasWrapperToParent={resizeCanvasWrapperToParent}
                 />
               </Match>
               <Match when={tab() === 2}>
@@ -263,6 +300,8 @@ function MediaEditor(params: {
               </Match>
             </Switch>
           </div>
+        </div>
+        <div class="media-editor__save" onClick={saveResult}>
         </div>
       </div>
     </>

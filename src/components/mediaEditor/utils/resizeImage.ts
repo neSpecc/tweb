@@ -1,5 +1,4 @@
 export function resizeImageData(imageData: ImageData, newWidth: number, newHeight: number): HTMLCanvasElement {
-  console.warn('resizeImageData may lead quality loss');
   /**
    * Create an off-screen canvas for resizing
    */

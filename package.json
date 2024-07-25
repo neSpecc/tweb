@@ -15,6 +15,7 @@
     "generate-icons": "node ./src/scripts/icomoon/icomoon_generate.js",
     "change-version": "node ./src/scripts/change_version.js",
     "lint": "npx eslint \"src/**/**.ts\"",
+    "lint-fix": "npx eslint \"src/**/**.ts\" --fix",
     "build:solid": "node ./src/scripts/build_solid.js"
   },
   "author": "",

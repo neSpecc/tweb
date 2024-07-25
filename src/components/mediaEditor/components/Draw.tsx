@@ -4,6 +4,7 @@ import type { useCanvasLayers } from '../services/useCanvasLayers';
 import type { DrawingTool } from '../services/useDrawing';
 import { useDrawing } from '../services/useDrawing';
 import ColorSelector from './ColorSelector';
+import ToolIcon from './ToolIcon';
 
 interface BrushProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
@@ -11,6 +12,7 @@ interface BrushProps {
 
 export default function Brush(props: BrushProps) {
   const [color, setColor] = createSignal<number>(0);
+  const [colorHex, setColorHex] = createSignal<string>('#ffffff');
   const [size, setSize] = createSignal<number>(15);
   const [tool, setTool] = createSignal<number>(0);
   const [drawing, setDrawing] = createSignal<ReturnType<typeof useDrawing>>();
@@ -27,16 +29,22 @@ export default function Brush(props: BrushProps) {
   function init() {
     const layer = props.layerMaganer().getBaseCanvasLayer();
 
-    const drawingService = useDrawing();
+    const drawingService = useDrawing({
+      originalImageOffscreenCanvas: layer.originalImageOffscreenCanvas,
+      imageData: layer.imageData,
+      visibleCanvas: layer.visibleCanvas,
+      onDraw() {
+        layer.sync();
+      },
+    });
 
     setDrawing(drawingService);
 
-    if (!layer.originalImageData) {
-      throw new Error('Original image data is not set');
+    if (!layer.imageData) {
+      throw new Error('Canvas image data is not set');
     }
 
-    drawingService.init(layer.canvas, layer.originalImageData);
-    // drawingService.setColor(colors[color()]);
+    drawingService.init();
     drawingService.setBrushSize(size());
     drawingService.setTool(tools[tool()]);
   }
@@ -46,6 +54,10 @@ export default function Brush(props: BrushProps) {
     if (!drawingService) {
       return;
     }
+
+    const layer = props.layerMaganer().getBaseCanvasLayer();
+
+    layer.save();
 
     drawingService.destroy();
   }
@@ -59,9 +71,8 @@ export default function Brush(props: BrushProps) {
   });
 
   function selectColor(color: string) {
-    // setColor(index);
-
     drawing()!.setColor(color);
+    setColorHex(color);
   }
 
   function selectBrushSize(size: number) {
@@ -119,8 +130,12 @@ export default function Brush(props: BrushProps) {
                 'pe-settings-row--selected': tool() === index,
               }}
               onClick={_ => selectTool(index)}
+              style={{
+                '--color': tool() === index ? colorHex() : undefined,
+              }}
             >
               <div class="pe-settings-row__icon">
+                { ToolIcon(toolTitle) }
               </div>
               <div class="pe-settings-row__title">
                 {toolTitle}

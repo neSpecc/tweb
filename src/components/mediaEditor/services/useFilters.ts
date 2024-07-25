@@ -1,31 +1,33 @@
-import { createSignal } from 'solid-js';
-
 /**
  * Filters is a function implementing this type
  */
 type Filter = (data: Uint8ClampedArray, value: number, imageSize: { width: number; height: number }) => void;
 
-export function useFilters() {
-  const [filterValues, setFilterValues] = createSignal({
-    brightness: 0,
-    contrast: 0,
-    saturation: 0,
-    warmth: 0,
-    fade: 0,
-    highlights: 0,
-    shadows: 0,
-    vignette: 0,
-    grain: 0,
-    sharpen: 0,
-  });
+export interface CanvasFilters {
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  warmth: number;
+  fade: number;
+  highlights: number;
+  shadows: number;
+  vignette: number;
+  grain: number;
+  sharpen: number;
+  enhance: number;
+}
 
+export function useFilters() {
   /**
    * Manipulate the brightness of the image
    * @param data - underlying pixel data for a specified portion of the canvas
    * @param brightness - The brightness value to apply. From -100 to 100.
    */
   function brightness(data: Uint8ClampedArray, brightness: number): void {
-    const factor = (brightness + 100) / 100;
+    let factor = (brightness + 100) / 100;
+    const strength = 0.8;
+
+    factor = factor * strength + 1 - strength;
 
     for (let i = 0; i < data.length; i += 4) {
       data[i] = Math.min(255, Math.max(0, data[i] * factor));
@@ -121,14 +123,12 @@ export function useFilters() {
       const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
 
       if (highlights >= 0 && brightness > threshold) {
-      // Enhance highlights
         const factor = 1 + Math.abs(highlights / 100);
         data[i] = Math.min(255, data[i] * factor); // Red
         data[i + 1] = Math.min(255, data[i + 1] * factor); // Green
         data[i + 2] = Math.min(255, data[i + 2] * factor); // Blue
       }
       else if (highlights < 0) {
-      // Reduce non-highlights
         const factor = 1 - Math.abs(highlights / 100);
         data[i] *= factor; // Red
         data[i + 1] *= factor; // Green
@@ -149,16 +149,14 @@ export function useFilters() {
       const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
 
       if (shadows > 0 && brightness < threshold) {
-      // Enhance shadows
         const factor = 1 + shadows / 100;
         data[i] = Math.max(0, data[i] * factor); // Red
         data[i + 1] = Math.max(0, data[i + 1] * factor); // Green
         data[i + 2] = Math.max(0, data[i + 2] * factor); // Blue
       }
       else if (shadows <= 0 && brightness < threshold) {
-      // Do nothing for non-shadow pixels when shadows <= 0
+        // Do nothing for non-shadow pixels when shadows <= 0
       }
-    // else, leave pixels unchanged (brightness >= threshold)
     }
   }
 
@@ -176,13 +174,9 @@ export function useFilters() {
         const distance = Math.sqrt(dx * dx + dy * dy);
         const gradient = distance / maxDistance;
 
-        // Calculate vignette factor based on intensity and gradient
         const vignette = vignetteIntensityValue * gradient;
-
-        // Calculate index in the image data array
         const index = (y * width + x) * 4;
 
-        // Apply vignette effect
         data[index] *= 1 - vignette;
         data[index + 1] *= 1 - vignette;
         data[index + 2] *= 1 - vignette;
@@ -226,8 +220,8 @@ export function useFilters() {
 
     const tmpData = new Uint8ClampedArray(data.length);
 
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
+    for (let y = halfSide; y < height - halfSide; y++) {
+      for (let x = halfSide; x < width - halfSide; x++) {
         const offset = (y * width + x) * 4;
         let r = 0;
         let g = 0;
@@ -237,24 +231,23 @@ export function useFilters() {
           for (let cx = 0; cx < side; cx++) {
             const scy = y + cy - halfSide;
             const scx = x + cx - halfSide;
+            const srcOffset = (scy * width + scx) * 4;
+            const wt = weights[cy * side + cx];
 
-            if (scy >= 0 && scy < height && scx >= 0 && scx < width) {
-              const srcOffset = (scy * width + scx) * 4;
-              const wt = weights[cy * side + cx];
-              r += data[srcOffset] * wt;
-              g += data[srcOffset + 1] * wt;
-              b += data[srcOffset + 2] * wt;
-            }
+            r += data[srcOffset] * wt;
+            g += data[srcOffset + 1] * wt;
+            b += data[srcOffset + 2] * wt;
           }
         }
 
-        tmpData[offset] = data[offset] + intensity * (r - data[offset]);
-        tmpData[offset + 1] = data[offset + 1] + intensity * (g - data[offset + 1]);
-        tmpData[offset + 2] = data[offset + 2] + intensity * (b - data[offset + 2]);
-        tmpData[offset + 3] = data[offset + 3];
+        tmpData[offset] = Math.min(Math.max(data[offset] + intensity * (r - data[offset]), 0), 255);
+        tmpData[offset + 1] = Math.min(Math.max(data[offset + 1] + intensity * (g - data[offset + 1]), 0), 255);
+        tmpData[offset + 2] = Math.min(Math.max(data[offset + 2] + intensity * (b - data[offset + 2]), 0), 255);
+        tmpData[offset + 3] = data[offset + 3]; // Preserve alpha
       }
     }
 
+    // Copy tmpData back to original data array
     for (let i = 0; i < data.length; i++) {
       data[i] = tmpData[i];
     }
@@ -287,24 +280,10 @@ export function useFilters() {
     enhance,
   };
 
-  const offScreenCanvas = document.createElement('canvas');
-  const offScreenContext = offScreenCanvas.getContext('2d');
+  // const offScreenCanvas = document.createElement('canvas');
+  // const offScreenContext = offScreenCanvas.getContext('2d');
 
-  function applyFilter(canvas: HTMLCanvasElement, filter: keyof typeof filters, value: number) {
-    const context = canvas.getContext('2d');
-
-    if (!context || !offScreenContext) {
-      throw new Error('Could not get canvas context to apply filter');
-    }
-
-    // Resize the off-screen canvas to match the main canvas
-    offScreenCanvas.width = canvas.width;
-    offScreenCanvas.height = canvas.height;
-
-    // Copy the current state of the main canvas to the off-screen canvas
-    offScreenContext.drawImage(canvas, 0, 0);
-
-    const imageData = offScreenContext.getImageData(0, 0, offScreenCanvas.width, offScreenCanvas.height);
+  function applyFilter(imageData: ImageData, filter: keyof CanvasFilters, value: number) {
     const data = imageData.data;
 
     if (!(filter in filters)) {
@@ -312,107 +291,85 @@ export function useFilters() {
     }
 
     filters[filter](data, value, {
-      width: offScreenCanvas.width,
-      height: offScreenCanvas.height,
+      width: imageData.width,
+      height: imageData.height,
     });
-
-    setFilterValues(prev => ({
-      ...prev,
-      [filter]: value,
-    }));
-
-    // Put the processed image data back to the off-screen canvas
-    offScreenContext.putImageData(imageData, 0, 0);
-
-    // Draw the off-screen canvas back to the main canvas
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(offScreenCanvas, 0, 0);
   }
 
-  function restoreFilters(canvas: HTMLCanvasElement, skip: keyof typeof filters) {
-    const context = canvas.getContext('2d');
+  // function applyFilter(canvas: HTMLCanvasElement, filter: keyof typeof filters, value: number) {
+  //   const context = canvas.getContext('2d');
 
-    if (!context || !offScreenContext) {
-      throw new Error('Could not get canvas context to restore filters');
-    }
+  //   if (!context || !offScreenContext) {
+  //     throw new Error('Could not get canvas context to apply filter');
+  //   }
 
-    // Resize the off-screen canvas to match the main canvas
-    offScreenCanvas.width = canvas.width;
-    offScreenCanvas.height = canvas.height;
+  //   offScreenCanvas.width = canvas.width;
+  //   offScreenCanvas.height = canvas.height;
 
-    // Copy the current state of the main canvas to the off-screen canvas
-    offScreenContext.drawImage(canvas, 0, 0);
+  //   offScreenContext.drawImage(canvas, 0, 0);
 
-    const imageData = offScreenContext.getImageData(0, 0, offScreenCanvas.width, offScreenCanvas.height);
+  //   const imageData = offScreenContext.getImageData(0, 0, offScreenCanvas.width, offScreenCanvas.height);
+  //   const data = imageData.data;
+
+  //   if (!(filter in filters)) {
+  //     throw new Error(`Filter ${filter} not found`);
+  //   }
+
+  //   filters[filter](data, value, {
+  //     width: offScreenCanvas.width,
+  //     height: offScreenCanvas.height,
+  //   });
+
+  //   offScreenContext.putImageData(imageData, 0, 0);
+  //   context.clearRect(0, 0, canvas.width, canvas.height);
+  //   context.drawImage(offScreenCanvas, 0, 0);
+  // }
+
+  function restoreFilters(imageData: ImageData, filtersValues: Partial<CanvasFilters>) {
     const data = imageData.data;
 
-    for (const [f, v] of Object.entries(filterValues())) {
-      if (f !== skip && v !== 0) {
-        filters[f](data, v, {
-          width: offScreenCanvas.width,
-          height: offScreenCanvas.height,
-        });
+    for (const [filter, value] of Object.entries(filtersValues)) {
+      if (!(filter in filters)) {
+        throw new Error(`Filter ${filter} not found`);
       }
+
+      filters[filter](data, value, {
+        width: imageData.width,
+        height: imageData.height,
+      });
     }
-
-    // Put the processed image data back to the off-screen canvas
-    offScreenContext.putImageData(imageData, 0, 0);
-
-    // Draw the off-screen canvas back to the main canvas
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(offScreenCanvas, 0, 0);
   }
 
-  function _applyFilter(canvas: HTMLCanvasElement, filter: keyof typeof filters, value: number) {
-    const context = canvas.getContext('2d');
+  // function restoreFilters(canvas: HTMLCanvasElement, filtersValues: Record<keyof typeof filters, number>) {
+  //   const context = canvas.getContext('2d');
 
-    if (!context) {
-      throw new Error('Could not get canvas context to apply filter');
-    }
+  //   if (!context || !offScreenContext) {
+  //     throw new Error('Could not get canvas context to restore filters');
+  //   }
 
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
+  //   offScreenCanvas.width = canvas.width;
+  //   offScreenCanvas.height = canvas.height;
 
-    if (!(filter in filters)) {
-      throw new Error(`Filter ${filter} not found`);
-    }
+  //   offScreenContext.drawImage(canvas, 0, 0);
 
-    filters[filter](data, value, {
-      width: canvas.width,
-      height: canvas.height,
-    });
+  //   const imageData = offScreenContext.getImageData(0, 0, offScreenCanvas.width, offScreenCanvas.height);
+  //   const data = imageData.data;
 
-    setFilterValues((prev) => {
-      return {
-        ...prev,
-        [filter]: value,
-      };
-    });
+  //   for (const [filter, value] of Object.entries(filtersValues)) {
+  //     if (!(filter in filters)) {
+  //       throw new Error(`Filter ${filter} not found`);
+  //     }
 
-    context.putImageData(imageData, 0, 0);
-  }
+  //     filters[filter](data, value, {
+  //       width: offScreenCanvas.width,
+  //       height: offScreenCanvas.height,
+  //     });
+  //   }
 
-  function _restoreFilters(canvas: HTMLCanvasElement, skip: keyof typeof filters) {
-    const context = canvas.getContext('2d');
-
-    if (!context) {
-      throw new Error('Could not get canvas context to restore filters');
-    }
-
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-
-    for (const [f, v] of Object.entries(filterValues())) {
-      if (f !== skip && v !== 0) {
-        filters[f](data, v, {
-          width: canvas.width,
-          height: canvas.height,
-        });
-      }
-    }
-
-    context.putImageData(imageData, 0, 0);
-  }
+  //   offScreenContext.putImageData(imageData, 0, 0);
+  //   context.clearRect(0, 0, canvas.width, canvas.height);
+  //   context.drawImage(offScreenCanvas, 0, 0);
+  // }
 
   return {
     applyFilter,

@@ -40,6 +40,16 @@ export function useTextTool(params: UseTextToolParams) {
       ...state.get(box) as TextareaState ?? {},
       ...newParams,
     });
+
+    const statesToStoreInBoxMeta = ['style', 'alignment', 'color'] as (keyof Pick<TextareaState, 'style' | 'alignment' | 'color'>)[];
+
+    for (const key of statesToStoreInBoxMeta) {
+      const value = newParams[key];
+
+      if (value) {
+        box.meta[key] = value;
+      }
+    }
   }
 
   function onLayerClick(event: MouseEvent) {

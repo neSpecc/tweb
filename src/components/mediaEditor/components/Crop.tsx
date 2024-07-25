@@ -1,14 +1,16 @@
 import type { Accessor } from 'solid-js';
-import { For, createEffect, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
+import { For, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
 import type { DivLayer, useCanvasLayers } from '../services/useCanvasLayers';
 import type { LeftZoneControls } from '../services/leftZoneControls';
 import type { DraggableBox } from '../services/useDraggableBox';
 import { debounce } from '../utils/debounce';
+import Icon from '../utils/icon';
 
 interface CropProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
   leftZoneControls: LeftZoneControls;
   resizeCanvasWrapper: (newWidth: number, newHeight: number, topOffset?: number) => void;
+  resizeCanvasWrapperToParent: (minMargin: number, isAnimated: boolean) => void;
   animateResizeCanvasWrapper: (
     newWidth: number,
     newHeight: number,
@@ -30,7 +32,7 @@ interface SliderDraggingInfo {
 
 interface Ratio {
   title: string;
-  icon: string;
+  icon: HTMLElement;
 }
 
 export default function Crop(props: CropProps) {
@@ -43,47 +45,37 @@ export default function Crop(props: CropProps) {
 
   const ratios: Ratio[][] = [
     [
-      { title: 'Free', icon: '' },
+      { title: 'Free', icon: Icon('ratio-free') },
     ],
     [
-      { title: 'Original', icon: '' },
+      { title: 'Original', icon: Icon('imageoriginal') },
     ],
     [
-      { title: 'Square', icon: '' },
+      { title: 'Square', icon: Icon('ratio-square') },
     ],
     [
-      { title: '3:2', icon: '' },
-      { title: '2:3', icon: '' },
+      { title: '3:2', icon: Icon('ratio-3-2') },
+      { title: '2:3', icon: Icon('ratio-3-2', 'icon-rotated') },
     ],
     [
-      { title: '4:3', icon: '' },
-      { title: '3:4', icon: '' },
+      { title: '4:3', icon: Icon('ratio-4-3') },
+      { title: '3:4', icon: Icon('ratio-4-3', 'icon-rotated') },
     ],
     [
-      { title: '5:4', icon: '' },
-      { title: '4:5', icon: '' },
+      { title: '5:4', icon: Icon('ratio-5-4') },
+      { title: '4:5', icon: Icon('ratio-5-4', 'icon-rotated') },
     ],
     [
-      { title: '7:5', icon: '' },
-      { title: '5:7', icon: '' },
+      { title: '7:5', icon: Icon('ratio-7-6') },
+      { title: '5:7', icon: Icon('ratio-7-6', 'icon-rotated') },
     ],
     [
-      { title: '16:9', icon: '' },
-      { title: '9:16', icon: '' },
+      { title: '16:9', icon: Icon('ratio-16-9') },
+      { title: '9:16', icon: Icon('ratio-16-9', 'icon-rotated') },
     ],
   ];
 
   const angles = Array.from({ length: 25 }, (_, i) => -180 + i * 15);
-
-  // const nearestAngleIndex = createMemo(() => {
-  //   const currentAngle = angle();
-  //   const nearest = angles.reduce((prev, curr, idx) => {
-  //     return Math.abs(curr - currentAngle) < Math.abs(angles[prev] - currentAngle) ? idx : prev;
-  //   }, 0);
-
-  //   // Check if the nearest angle is within ±3 degrees of the current angle
-  //   return Math.abs(angles[nearest] - currentAngle) <= 5 ? nearest : null;
-  // });
 
   const nearestAngleIndex = createMemo(() => {
     const currentAngle = angle();
@@ -116,14 +108,18 @@ export default function Crop(props: CropProps) {
     <div class="pe-resizer-wrapper">
       <div class="pe-resizer">
         <div class="pe-resizer__left">
-          <span class="pe-resizer__rotate" onClick={rotate90} />
+          <span class="pe-resizer__rotate" onClick={rotate90}>
+            { Icon('rotate') }
+          </span>
         </div>
         <div class="pe-resizer__center">
           {resizeSlider}
           <div class="pe-resizer__center-pointer" />
         </div>
         <div class="pe-resizer__right">
-          <span class="pe-resizer__flip" onClick={flip} />
+          <span class="pe-resizer__flip" onClick={flip}>
+            { Icon('flip') }
+          </span>
         </div>
       </div>
     </div>
@@ -135,8 +131,8 @@ export default function Crop(props: CropProps) {
   }
 
   function destroy() {
+    deinitCrop();
     hideResizeSlider();
-    cropLayer()?.remove();
   }
 
   onMount(() => {
@@ -145,6 +141,13 @@ export default function Crop(props: CropProps) {
 
   onCleanup(() => {
     destroy();
+    const imageLayer = props.layerMaganer().getBaseCanvasLayer();
+
+    if (!imageLayer) {
+      return;
+    }
+
+    imageLayer.save();
   });
 
   function flip() {
@@ -155,6 +158,8 @@ export default function Crop(props: CropProps) {
     }
 
     imageLayer.flip();
+    setAngle(0);
+    resetSliderPosition();
   }
 
   /**
@@ -169,8 +174,11 @@ export default function Crop(props: CropProps) {
         return { width: layerRect.width, height: layerRect.height };
       case 'Original':
         return { width: layerRect.width, height: layerRect.height };
-      case 'Square':
-        return { width: layerRect.width, height: layerRect.width };
+      case 'Square': {
+        const minSide = Math.min(layerRect.width, layerRect.height);
+
+        return { width: minSide, height: minSide };
+      }
       default: {
         const [w, h] = ratioTitle.split(':').map(Number);
         const ratio = w / h;
@@ -207,17 +215,17 @@ export default function Crop(props: CropProps) {
   function updateCroppedZoneOverlay(width: number, height: number, x: number, y: number) {
     const layerRect = cropLayer()!.rect;
 
-    const bottomZoneHeigth = layerRect.height - y - height;
+    const bottomZoneHeigth = Math.abs(layerRect.height - y - height);
 
-    (croppedZoneOverlayTop as HTMLElement).style.height = `${y}px`;
+    (croppedZoneOverlayTop as HTMLElement).style.height = `${Math.abs(y)}px`;
     (croppedZoneOverlayBottom as HTMLElement).style.height = `${bottomZoneHeigth}px`;
 
-    (croppedZoneOverlayLeft as HTMLElement).style.width = `${x}px`;
-    (croppedZoneOverlayLeft as HTMLElement).style.top = `${y}px`;
+    (croppedZoneOverlayLeft as HTMLElement).style.width = `${Math.abs(x)}px`;
+    (croppedZoneOverlayLeft as HTMLElement).style.top = `${Math.abs(y)}px`;
     (croppedZoneOverlayLeft as HTMLElement).style.bottom = `${bottomZoneHeigth}px`;
 
-    (croppedZoneOverlayRight as HTMLElement).style.width = `${layerRect.width - x - width}px`;
-    (croppedZoneOverlayRight as HTMLElement).style.top = `${y}px`;
+    (croppedZoneOverlayRight as HTMLElement).style.width = `${Math.abs(layerRect.width - x - width)}px`;
+    (croppedZoneOverlayRight as HTMLElement).style.top = `${Math.abs(y)}px`;
     (croppedZoneOverlayRight as HTMLElement).style.bottom = `${bottomZoneHeigth}px`;
   }
 
@@ -226,11 +234,22 @@ export default function Crop(props: CropProps) {
     </div>
   );
 
-  const debouncedCrop = debounce(() => {
-    crop(cropBox()!.position);
-  }, 1000);
+  let cropChanged = false;
+
+  const canasClickOutsideListener = (event: MouseEvent) => {
+    console.log('CLICKED OUTSIDE PHOTO');
+
+    const canvasWrapper = document.getElementById('canvasWrapper') as HTMLElement;
+    const isClickedOutsidePhoto = !canvasWrapper.contains(event.target as Node);
+
+    if (isClickedOutsidePhoto) {
+      crop(cropBox()!.position);
+    }
+  };
 
   function initCrop() {
+    console.log('INIT CROP');
+
     const overlay = props.layerMaganer().createDivLayer();
     const layer = props.layerMaganer().createDivLayer();
 
@@ -250,16 +269,16 @@ export default function Crop(props: CropProps) {
       preserveRatio: aspectRatio() !== 'Free',
       style: 'solid',
       onResize(width, height, x, y) {
-        updateCroppedZoneOverlay(width, height, x ?? box.position.x, y ?? box.position.y);
+        updateCroppedZoneOverlay(width, height, box.position.x, box.position.y);
       },
       onDrag(x, y) {
         updateCroppedZoneOverlay(box.position.width, box.position.height, x, y);
       },
       onAfterDrag() {
-        debouncedCrop();
+        cropChanged = true;
       },
       onAfterResize() {
-        debouncedCrop();
+        cropChanged = true;
       },
     });
 
@@ -273,27 +292,29 @@ export default function Crop(props: CropProps) {
 
     layer.activateBox(box);
 
-    // layer.div.addEventListener('mouseout', canasMouseOutListener);
-  }
+    const leftZone = document.querySelector('.media-editor__left') as HTMLElement;
 
-  function canasMouseOutListener(e: MouseEvent) {
-    debouncedCrop();
+    leftZone.addEventListener('mousedown', canasClickOutsideListener);
   }
 
   function deinitCrop() {
-    cropLayer()?.removeAllBoxes();
+    cropLayer()?.remove();
+    overlayLayer()?.remove();
 
-    const layer = cropLayer();
+    const leftZone = document.querySelector('.media-editor__left') as HTMLElement;
 
-    // if (layer) {
-    //   layer.div.removeEventListener('mouseout', canasMouseOutListener);
-    // }
+    leftZone.removeEventListener('mousedown', canasClickOutsideListener);
   }
 
   function crop({ x, y, width, height }: { x: number; y: number; width: number; height: number }) {
-    cropLayer()!.div.style.width = '0';
-    cropLayer()!.div.style.height = '0';
-    cropLayer()!.div.style.display = 'none';
+    if (!cropChanged) {
+      return;
+    }
+
+    const layer = props.layerMaganer().getBaseCanvasLayer();
+
+    deinitCrop();
+    resetSliderPosition();
 
     /**
      * New canvas dimensions should respect aspect ratio and fit all available space except offset top
@@ -313,11 +334,9 @@ export default function Crop(props: CropProps) {
 
     const offsetTopAfter = offsetTopBefore + (availabeHeight - newCanvasHeight) / 2;
 
-    // const canvasCenterYBefore = offsetTopBefore + canvasWrapper.offsetHeight / 2;
-    // const offsetTop = canvasCenterYBefore - height / 2;
+    const animationDuration = 710;
 
-    const layer = props.layerMaganer().getBaseCanvasLayer();
-    const animationDuration = 700;
+    layer!.crop(x, y, width, height);
 
     props.animateResizeCanvasWrapper(
       newCanvasWidth,
@@ -326,28 +345,21 @@ export default function Crop(props: CropProps) {
       [0.38, 0.45, 0.26, 1.06],
       // [0.42, 0.16, 0.43, 1.15],
       undefined,
-      newCanvasWidth * 0.85,
-      newCanvasHeight * 0.85,
-      offsetTopAfter * 2,
+      newCanvasWidth * 0.96,
+      newCanvasHeight * 0.96,
+      offsetTopAfter,
       animationDuration,
     );
 
-    layer!.crop(x, y, width, height);
-
     setTimeout(() => {
-      cropLayer()!.div.style.display = 'block';
-      cropLayer()!.div.style.width = '100%';
-      cropLayer()!.div.style.height = '100%';
-
-      console.log('restoring crop layer', width, height);
-
-      cropBox()!.position.x = 0;
-      cropBox()!.position.y = 0;
-      cropBox()!.position.width = width;
-      cropBox()!.position.height = height;
-
-      cropBox()!.reposition();
+      requestAnimationFrame(() => {
+        initCrop();
+      });
     }, animationDuration);
+
+    cropChanged = false;
+
+    layer.save();
   }
 
   let sliderDraggingInfo: SliderDraggingInfo | null = null;
@@ -377,6 +389,18 @@ export default function Crop(props: CropProps) {
 
     slider.classList.remove('pe-resizer__slider--dragging');
     (cropBoxGrid as HTMLElement).classList.remove('pe-crop-grid--rotating');
+  }
+
+  function resetSliderPosition() {
+    const slider = resizeSlider as HTMLElement;
+
+    slider.style.transform = 'translateX(0)';
+    currentSliderLeft = 0;
+    setAngle(0);
+
+    const layer = props.layerMaganer().getBaseCanvasLayer();
+
+    layer.state.rotation = 0;
   }
 
   function moveAngleSlide(e: Event) {
@@ -410,42 +434,17 @@ export default function Crop(props: CropProps) {
     const maxAngle = 180;
     const range = maxAngle - minAngle;
 
-    // Normalize the x position to a value between 0 and 1
     const normalizedX = (x + (sliderWidth / 2)) / sliderWidth;
-
-    // Calculate the angle based on the normalized position
     const angle = (normalizedX * range + minAngle) * -1;
 
     // console.log(`Angle: ${angle.toFixed(2)}°`);
-    setAngle(Math.round(angle)); // Use the calculated angle directly
-  }
-
-  function setupInitialSliderPosition() {
-    // const slider = resizeSlider as HTMLElement;
-    // const sliderWidth = slider.offsetWidth;
-
-    // const currentAngle = angle();
-    // const maxAngle = 180; // Change to 180
-    // const minAngle = -180; // Change to -180
-    // const range = maxAngle - minAngle;
-
-    // // Calculate the center position for the current angle
-    // const normalizedAngle = (currentAngle - minAngle) / range; // Normalize angle to range [0, 1]
-    // const centerX = normalizedAngle * sliderWidth; // Position within the slider width
-
-    // // Calculate the translateX value to center the current angle
-    // const translateX = 0 - centerX + sliderWidth / 2; // Adjust to center
-
-    // // Set the translateX value
-    // slider.style.transform = `translateX(${translateX}px)`;
-
-    // currentSliderLeft = translateX;
+    const angleRounded = Math.round(angle);
+    setAngle(angleRounded);
+    rotateImage(angleRounded);
   }
 
   function showResizeSlider() {
     props.leftZoneControls.show(resizeSliderWrapper as Element);
-
-    setupInitialSliderPosition();
 
     (resizeSlider as Element).addEventListener('mousedown', beginAngleSlide);
     document.addEventListener('mouseup', endAngleSlide);
@@ -454,11 +453,13 @@ export default function Crop(props: CropProps) {
 
   function hideResizeSlider() {
     props.leftZoneControls.hide();
+
+    (resizeSlider as Element).removeEventListener('mousedown', beginAngleSlide);
     document.removeEventListener('mouseup', endAngleSlide);
     document.removeEventListener('mousemove', moveAngleSlide);
   }
 
-  function rotate90() {
+  function _rotate90() {
     const imageLayer = props.layerMaganer().getBaseCanvasLayer();
 
     if (!imageLayer) {
@@ -474,10 +475,10 @@ export default function Crop(props: CropProps) {
     const degrees = canvasRotationApplied() + 90;
 
     canvasWrapper.addEventListener('transitionend', () => {
-      const newWidth = canvasRotationApplied() % 90 === 0 ? imageLayer.canvas.height : imageLayer.canvas.width;
-      const newHeight = canvasRotationApplied() % 90 === 0 ? imageLayer.canvas.width : imageLayer.canvas.height;
+      const newWidth = canvasRotationApplied() % 90 === 0 ? imageLayer.visibleCanvas.height : imageLayer.visibleCanvas.width;
+      const newHeight = canvasRotationApplied() % 90 === 0 ? imageLayer.visibleCanvas.width : imageLayer.visibleCanvas.height;
 
-      const canvasCenterYBefore = offsetTopBefore + imageLayer.canvas.height / 2;
+      const canvasCenterYBefore = offsetTopBefore + imageLayer.visibleCanvas.height / 2;
       const newTopOffset = canvasCenterYBefore - newHeight / 2;
 
       canvasWrapper.style.transition = '';
@@ -494,6 +495,63 @@ export default function Crop(props: CropProps) {
     setCanvasRotationApplied(degrees);
   }
 
+  function rotate90() {
+    const imageLayer = props.layerMaganer().getBaseCanvasLayer();
+
+    if (!imageLayer) {
+      return;
+    }
+
+    deinitCrop();
+
+    const { visibleCanvas } = imageLayer;
+
+    const canvasWrapper = document.getElementById('canvasWrapper') as HTMLElement;
+    const minMarginTop = 60;
+    const parentContainer = canvasWrapper.parentElement as HTMLElement;
+    const parentRect = parentContainer.getBoundingClientRect();
+    const canvasRect = visibleCanvas.getBoundingClientRect();
+
+    let newWidth = canvasRect.height;
+    let newHeight = canvasRect.width;
+    const newRatio = newWidth / newHeight;
+
+    const isHorizontal = newWidth > newHeight;
+
+    if (isHorizontal) {
+      if (newWidth > parentRect.width) {
+        newWidth = parentRect.width;
+        newHeight = newWidth / newRatio;
+      }
+    }
+    else {
+      if (newHeight > parentRect.height) {
+        newHeight = parentRect.height;
+        newWidth = newHeight * newRatio;
+      }
+    }
+
+    if (newHeight > parentRect.height - minMarginTop) {
+      newHeight = parentRect.height - minMarginTop;
+      newWidth = newHeight * newRatio;
+    }
+
+    const spaceAboveAndBelow = parentRect.height - newHeight;
+
+    let topOffset = minMarginTop;
+
+    if (spaceAboveAndBelow / 2 > minMarginTop) {
+      topOffset = spaceAboveAndBelow / 2;
+    }
+
+    props.resizeCanvasWrapper(newWidth, newHeight, topOffset);
+    imageLayer.rotate90();
+    imageLayer.save();
+    resetSliderPosition();
+
+    initCrop();
+  }
+
   function rotateImage(degrees: number) {
     const imageLayer = props.layerMaganer().getBaseCanvasLayer();
 
@@ -505,20 +563,22 @@ export default function Crop(props: CropProps) {
     // imageLayer.save();
   }
 
-  createEffect(() => rotateImage(angle()));
+  // createEffect(() => rotateImage(angle()));
 
   function aspectRatioChanged(ratio: Ratio) {
     const aspectRatio = ratio.title;
 
     setAspectRatio(aspectRatio);
 
+    cropChanged = true;
+
     deinitCrop();
     initCrop();
   }
 
   return (
-    <div class="pe-crop">
-      <div class="pe-crop__section-header">
+    <div class="pe-settins pe-crop">
+      <div class="pe-settings__section-header">
         Aspect ratio
       </div>
       <For each={ratios}>

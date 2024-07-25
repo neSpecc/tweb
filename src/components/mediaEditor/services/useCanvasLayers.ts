@@ -1,28 +1,43 @@
+import PromiseQueue from '../utils/promise-queue';
 import { resizeImageData } from '../utils/resizeImage';
 import { type DraggableBox, type DraggableBoxCreationAttributes, useDraggableBox } from './useDraggableBox';
+import { type CanvasFilters, useFilters } from './useFilters';
 
 interface UseCanvasLayersParams {
   wrapperEl: HTMLElement;
 }
 
 export interface LayerBase {
-  creationParams: LayerCreationParams;
-  redraw: () => void;
   remove: () => void;
 }
 
 export interface CanvasLayer extends LayerBase {
-  canvas: HTMLCanvasElement;
   div?: never;
-  originalImageData: ImageData | undefined;
+  creationParams: LayerCreationParams;
+  visibleCanvas: HTMLCanvasElement;
+  visibleCanvasContext: CanvasRenderingContext2D;
+  originalImageOffscreenCanvas: OffscreenCanvas;
+  originalImageOffscreenContext: OffscreenCanvasRenderingContext2D;
+  imageData: ImageData;
+  imageDataWithoutFilters: ImageData;
   state: {
     rotation: number;
+    crop: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
+    filters: CanvasFilters;
   };
-  save: () => void;
+  save: (withoutFilters?: boolean) => void;
   rotate: (angle: number) => void;
   rotate90: () => void;
   flip: () => void;
   crop: (x: number, y: number, width: number, height: number) => void;
+  restoreState: () => void;
+  applyFilter: (filterName: keyof CanvasFilters, value: number) => void;
+  sync: () => void;
 }
 
 export interface DivLayer extends LayerBase {
@@ -30,6 +45,7 @@ export interface DivLayer extends LayerBase {
   div: HTMLDivElement;
   rect: DOMRect;
   boxes: DraggableBox[];
+  redraw: () => void;
   createBox: (params: DraggableBoxCreationAttributes) => DraggableBox;
   insertBox: (box: DraggableBox, x: number, y: number) => void;
   removeBox: (box: DraggableBox) => void;
@@ -38,12 +54,13 @@ export interface DivLayer extends LayerBase {
   removeEmptyBoxes: () => void;
   removeAllBoxes: () => void;
   deactivateAllBoxes: () => void;
+  export: (width: number, height: number) => Promise<HTMLCanvasElement>;
 }
 
 export type Layer = CanvasLayer | DivLayer;
 
 export interface LayerCreationParams {
-  bgImage?: HTMLImageElement;
+  image: HTMLImageElement;
   onActivate?: (box: DraggableBox) => void;
 }
 
@@ -51,6 +68,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
   const layers = new Set<Layer>();
 
   const { create: createDraggableBox } = useDraggableBox();
+  const { applyFilter, restoreFilters } = useFilters();
 
   if (!params?.wrapperEl) {
     throw new Error('wrapperEl is required');
@@ -65,7 +83,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
   params?.wrapperEl.appendChild(layersParent);
 
   function isCanvasLayer(layer: Layer): layer is CanvasLayer {
-    return 'canvas' in layer;
+    return 'visibleCanvas' in layer;
   }
 
   function windowResizeHandler() {
@@ -88,8 +106,17 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
       }
     });
   }
-
   function resizeCanvasLayer(layer: CanvasLayer): void {
+    const newWidth = layersParent.offsetWidth;
+    const newHeight = layersParent.offsetHeight;
+
+    layer.visibleCanvas.width = newWidth;
+    layer.visibleCanvas.height = newHeight;
+
+    syncVisibleCanvas(layer);
+  }
+
+  function _resizeCanvasLayer(layer: CanvasLayer): void {
     const context = layer.canvas.getContext('2d', { willReadFrequently: true });
 
     if (!context) {
@@ -99,8 +126,8 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     const newWidth = layersParent.offsetWidth;
     const newHeight = layersParent.offsetHeight;
 
-    if (layer.originalImageData) {
-      const resizedCanvas = resizeImageData(layer.originalImageData, newWidth, newHeight);
+    if (layer.canvasImageData) {
+      const resizedCanvas = resizeImageData(layer.canvasImageData, newWidth, newHeight);
 
       layer.canvas.width = newWidth;
       layer.canvas.height = newHeight;
@@ -113,47 +140,56 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
      */
   }
 
-  function drawCanvasLayer(layer: CanvasLayer, image?: ImageData): void {
-    layer.canvas.width = layersParent.offsetWidth;
-    layer.canvas.height = layersParent.offsetHeight;
+  function drawWithoutFilters(layer: CanvasLayer): void {
+    // restoreState(layer); ???
 
-    const context = layer.canvas.getContext('2d', { willReadFrequently: true });
-
-    if (!context) {
-      throw new Error('Could not get layer context');
+    if (!layer.imageDataWithoutFilters) {
+      throw new Error('No image data available for drawing without filters');
     }
 
-    if (image) {
-      context.putImageData(image, 0, 0);
-    }
-    else if (layer.creationParams.bgImage) {
-      context.drawImage(layer.creationParams.bgImage, 0, 0, layer.canvas.width, layer.canvas.height);
-      layer.originalImageData = context.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
-    }
+    layer.originalImageOffscreenContext.putImageData(layer.imageDataWithoutFilters, 0, 0);
+
+    syncVisibleCanvas(layer);
   }
 
+  // function _drawWithoutFilters(layer: CanvasLayer): void {
+  //   layer.canvas.width = layersParent.offsetWidth;
+  //   layer.canvas.height = layersParent.offsetHeight;
+
+  //   const context = layer.canvas.getContext('2d', { willReadFrequently: true });
+
+  //   if (!context) {
+  //     throw new Error('Could not get layer context');
+  //   }
+
+  //   if (!layer.canvasImageDataWithoutFilters) {
+  //     throw new Error('No canvas image data available');
+  //   }
+  //   restoreState(layer);
+
+  //   context.putImageData(layer.canvasImageDataWithoutFilters, 0, 0);
+  // }
+
   function rotateCanvasLayerContent(layer: CanvasLayer, angle: number): void {
-    const { canvas, originalImageData } = layer;
-    const context = canvas.getContext('2d');
+    const {
+      originalImageOffscreenCanvas,
+      originalImageOffscreenContext,
+      imageData,
+    } = layer;
 
-    if (!context) {
-      throw new Error('Could not get context');
-    }
-
-    if (!originalImageData) {
-      throw new Error('No original image data available');
-    }
+    const width = originalImageOffscreenCanvas.width;
+    const height = originalImageOffscreenCanvas.height;
 
     const radians = angle * (Math.PI / 180);
     const absCos = Math.abs(Math.cos(radians));
     const absSin = Math.abs(Math.sin(radians));
-    const boundingWidth = canvas.width * absCos + canvas.height * absSin;
-    const boundingHeight = canvas.width * absSin + canvas.height * absCos;
-    const scale = Math.max(boundingWidth / canvas.width, boundingHeight / canvas.height);
+    const boundingWidth = width * absCos + height * absSin;
+    const boundingHeight = width * absSin + height * absCos;
+    const scale = Math.max(boundingWidth / width, boundingHeight / height);
 
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = canvas.width * scale;
-    tempCanvas.height = canvas.height * scale;
+    tempCanvas.width = width * scale;
+    tempCanvas.height = height * scale;
     const tempContext = tempCanvas.getContext('2d');
 
     if (!tempContext) {
@@ -162,7 +198,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
 
     tempContext.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
 
-    const resizedCanvas = resizeImageData(originalImageData, tempCanvas.width, tempCanvas.height);
+    const resizedCanvas = resizeImageData(imageData, tempCanvas.width, tempCanvas.height);
 
     tempContext.save();
     tempContext.translate(tempCanvas.width / 2, tempCanvas.height / 2);
@@ -171,115 +207,82 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     tempContext.drawImage(resizedCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
     tempContext.restore();
 
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(tempCanvas, (canvas.width - tempCanvas.width) / 2, (canvas.height - tempCanvas.height) / 2, tempCanvas.width, tempCanvas.height);
+    originalImageOffscreenContext.drawImage(
+      tempCanvas,
+      (width - tempCanvas.width) / 2,
+      (height - tempCanvas.height) / 2,
+      tempCanvas.width,
+      tempCanvas.height,
+    );
+
+    layer.state.rotation = angle;
+
+    syncVisibleCanvas(layer);
   }
 
   function rotateCanvasLayerContent90(layer: CanvasLayer): void {
-    const { canvas } = layer;
-    const context = canvas.getContext('2d');
-    if (!context)
-      return;
+    const {
+      originalImageOffscreenCanvas,
+      originalImageOffscreenContext,
+    } = layer;
 
-    // Save the current dimensions of the canvas
-    const currentWidth = canvas.width;
-    const currentHeight = canvas.height;
+    const currentWidth = originalImageOffscreenCanvas.width;
+    const currentHeight = originalImageOffscreenCanvas.height;
 
     // Create a new canvas to hold the rotated image
-    const newCanvas = document.createElement('canvas');
-    newCanvas.width = currentWidth;
-    newCanvas.height = currentHeight;
-    const newContext = newCanvas.getContext('2d');
-    if (!newContext)
-      return;
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = currentHeight;
+    tempCanvas.height = currentWidth;
+    const tempContext = tempCanvas.getContext('2d');
+
+    if (!tempContext) {
+      throw new Error('Could not get temporary context');
+    }
 
     // Rotate the new canvas context
-    newContext.translate(currentWidth / 2, currentHeight / 2);
-    newContext.rotate(90 * Math.PI / 180);
-    newContext.drawImage(canvas, -currentHeight / 2, -currentWidth / 2, currentHeight, currentWidth);
+    tempContext.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+    tempContext.rotate(90 * Math.PI / 180);
+    tempContext.translate(-tempCanvas.height / 2, -tempCanvas.width / 2);
+    tempContext.drawImage(originalImageOffscreenCanvas, 0, 0, currentWidth, currentHeight);
 
-    // Clear the original canvas and draw the rotated image back onto it
-    context.clearRect(0, 0, currentWidth, currentHeight);
-    context.drawImage(newCanvas, 0, 0);
+    // Clear the original offscreen context and draw the rotated image back onto it
+    originalImageOffscreenContext.clearRect(0, 0, currentWidth, currentHeight);
+    originalImageOffscreenCanvas.width = tempCanvas.width;
+    originalImageOffscreenCanvas.height = tempCanvas.height;
+    originalImageOffscreenContext.drawImage(tempCanvas, 0, 0);
+
+    // Sync the visible canvas with the updated offscreen canvas
+    syncVisibleCanvas(layer);
   }
 
-  function _rotateCanvasLayerContent90(layer: CanvasLayer): void {
-    const { canvas } = layer;
-    const context = canvas.getContext('2d');
-    if (!context)
-      return;
+  function saveLayer(layer: CanvasLayer, withoutFilters = false, newWidth?: number, newHeight?: number): void {
+    const canvas = layer.originalImageOffscreenCanvas;
+    const context = layer.originalImageOffscreenContext;
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
-    // Save the original image data if it's not saved already
-    if (!layer.originalImageData) {
-      saveLayer(layer);
+    if (withoutFilters) {
+      layer.imageDataWithoutFilters = imageData;
+      return;
     }
 
-    const originalImageData = layer.originalImageData;
-    if (!originalImageData)
-      return;
-
-    // Update the rotation state
-    layer.state.rotation = (layer.state.rotation + 90) % 360;
-
-    // Save the current dimensions of the canvas
-    const currentWidth = canvas.width;
-    const currentHeight = canvas.height;
-
-    // Create a new canvas to hold the rotated image
-    const newCanvas = document.createElement('canvas');
-    newCanvas.width = currentWidth;
-    newCanvas.height = currentHeight;
-    const newContext = newCanvas.getContext('2d');
-    if (!newContext)
-      return;
-
-    // Create a temporary canvas to use the original image data
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = originalImageData.width;
-    tempCanvas.height = originalImageData.height;
-    const tempContext = tempCanvas.getContext('2d');
-    if (!tempContext)
-      return;
-    tempContext.putImageData(originalImageData, 0, 0);
-
-    // Rotate the new canvas context according to the current rotation state
-    newContext.translate(currentWidth / 2, currentHeight / 2);
-    newContext.rotate((layer.state.rotation * Math.PI) / 180);
-
-    // Adjust translation for correct positioning and draw the image
-    if (layer.state.rotation === 90 || layer.state.rotation === 270) {
-      newContext.translate(-currentHeight / 2, -currentWidth / 2);
-      newContext.drawImage(tempCanvas, 0, 0, currentHeight, currentWidth);
-    }
-    else {
-      newContext.translate(-currentWidth / 2, -currentHeight / 2);
-      newContext.drawImage(tempCanvas, 0, 0, currentWidth, currentHeight);
-    }
-
-    // Clear the original canvas and draw the rotated image back onto it
-    context.clearRect(0, 0, currentWidth, currentHeight);
-    context.drawImage(newCanvas, 0, 0, currentWidth, currentHeight);
-  }
-
-  function saveLayer(layer: CanvasLayer): void {
-    layer.originalImageData = layer.canvas.getContext('2d')?.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
+    layer.imageData = imageData;
   }
 
   function flipCanvasLayerContent(layer: CanvasLayer): void {
-    const { canvas, originalImageData } = layer;
-    const context = canvas.getContext('2d');
+    saveLayer(layer);
 
-    if (!context) {
-      throw new Error('Could not get context');
-    }
+    const {
+      originalImageOffscreenCanvas,
+      originalImageOffscreenContext,
+      imageData,
+    } = layer;
 
-    if (!originalImageData) {
-      throw new Error('No original image data available');
-    }
+    const width = originalImageOffscreenCanvas.width;
+    const height = originalImageOffscreenCanvas.height;
 
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = canvas.width;
-    tempCanvas.height = canvas.height;
+    tempCanvas.width = width;
+    tempCanvas.height = height;
     const tempContext = tempCanvas.getContext('2d');
 
     if (!tempContext) {
@@ -288,7 +291,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
 
     tempContext.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
 
-    const resizedCanvas = resizeImageData(originalImageData, tempCanvas.width, tempCanvas.height);
+    const resizedCanvas = resizeImageData(imageData, tempCanvas.width, tempCanvas.height);
 
     tempContext.save();
     tempContext.translate(tempCanvas.width, 0);
@@ -296,61 +299,204 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     tempContext.drawImage(resizedCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
     tempContext.restore();
 
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+    // context.clearRect(0, 0, canvas.width, canvas.height);
+    originalImageOffscreenContext.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+    syncVisibleCanvas(layer);
 
     saveLayer(layer);
   }
 
   function cropCanvas(layer: CanvasLayer, x: number, y: number, width: number, height: number): void {
-    const { canvas } = layer;
-    const context = canvas.getContext('2d');
-    if (!context)
-      return;
+    layer.save();
+    layer.state.crop = { x, y, width, height };
 
-    // Get the current canvas image data
-    const currentImageData = context.getImageData(0, 0, canvas.width, canvas.height);
-
-    // Create a new canvas to hold the cropped image
-    const croppedCanvas = document.createElement('canvas');
-    croppedCanvas.width = width;
-    croppedCanvas.height = height;
-    const croppedContext = croppedCanvas.getContext('2d');
-    if (!croppedContext)
-      return;
-
-    // Draw the specified area from the current canvas onto the cropped canvas
-    croppedContext.putImageData(currentImageData, -x, -y);
-
-    // Update the original image data with the new cropped image data
-    layer.originalImageData = croppedContext.getImageData(0, 0, width, height);
-
-    // Clear the original canvas and draw the cropped image back onto it
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(croppedCanvas, 0, 0);
+    restoreCrop(layer);
   }
 
-  function createCanvasLayer(params?: LayerCreationParams): CanvasLayer {
-    const canvas = document.createElement('canvas');
+  function restoreCrop(layer: CanvasLayer): void {
+    const {
+      originalImageOffscreenCanvas,
+      originalImageOffscreenContext,
+      visibleCanvas,
+    } = layer;
 
-    canvas.width = layersParent.offsetWidth;
-    canvas.height = layersParent.offsetHeight;
+    const { x, y, width, height } = layer.state.crop;
 
-    layersParent.appendChild(canvas);
+    const scaleX = originalImageOffscreenCanvas.width / visibleCanvas.width;
+    const scaleY = originalImageOffscreenCanvas.height / visibleCanvas.height;
+
+    const cropX = x * scaleX;
+    const cropY = y * scaleY;
+    const cropWidth = width * scaleX;
+    const cropHeight = height * scaleY;
+
+    const croppedCanvas = document.createElement('canvas');
+    croppedCanvas.width = cropWidth;
+    croppedCanvas.height = cropHeight;
+    const croppedContext = croppedCanvas.getContext('2d');
+
+    if (!croppedContext) {
+      throw new Error('Failed to crop: Could not get temporary context');
+    }
+
+    croppedContext.drawImage(
+      originalImageOffscreenCanvas,
+      cropX,
+      cropY,
+      cropWidth,
+      cropHeight,
+      0,
+      0,
+      cropWidth,
+      cropHeight,
+    );
+
+    originalImageOffscreenCanvas.width = cropWidth;
+    originalImageOffscreenCanvas.height = cropHeight;
+    originalImageOffscreenContext.clearRect(0, 0, cropWidth, cropHeight);
+    originalImageOffscreenContext.drawImage(croppedCanvas, 0, 0);
+
+    syncVisibleCanvas(layer);
+
+    saveLayer(layer);
+  }
+
+  function restoreState(layer: CanvasLayer): void {
+    if (layer.state.rotation !== 0) {
+      rotateCanvasLayerContent(layer, layer.state.rotation);
+    }
+
+    if (layer.state.crop.width !== 0 && layer.state.crop.height !== 0) {
+      restoreCrop(layer);
+    }
+  }
+
+  function copyImageData(imageData: ImageData): ImageData {
+    // Create a new ImageData object with the same dimensions
+    const copy = new ImageData(imageData.width, imageData.height);
+
+    // Copy the pixel data from the original ImageData to the new ImageData
+    copy.data.set(imageData.data);
+
+    return copy;
+  }
+
+  function applyCanvasFilter(layer: CanvasLayer, filterName: keyof CanvasFilters, value: number): void {
+    const filtersToAdd = Object.fromEntries(Object.entries(layer.state.filters).filter(([_name, value]) => {
+      return value !== 0;
+    }));
+
+    filtersToAdd[filterName] = value;
+
+    layer.state.filters[filterName] = value;
+
+    // const dataToAddFilters = copyImageData(layer.imageDataWithoutFilters);
+    const dataToAddFilters = copyImageData(layer.imageData);
+
+    restoreFilters(dataToAddFilters, filtersToAdd);
+
+    layer.originalImageOffscreenContext.putImageData(dataToAddFilters, 0, 0);
+
+    syncVisibleCanvas(layer);
+  }
+
+  function syncVisibleCanvas(layer: CanvasLayer): void {
+    const {
+      visibleCanvas,
+      visibleCanvasContext,
+      originalImageOffscreenCanvas,
+    } = layer;
+
+    const scale = Math.min(visibleCanvas.width / originalImageOffscreenCanvas.width, visibleCanvas.height / originalImageOffscreenCanvas.height);
+    const scaledWidth = originalImageOffscreenCanvas.width * scale;
+    const scaledHeight = originalImageOffscreenCanvas.height * scale;
+
+    // visibleCanvas.width = scaledWidth;
+    // visibleCanvas.height = scaledHeight;
+
+    visibleCanvasContext.clearRect(0, 0, visibleCanvas.width, visibleCanvas.height);
+    visibleCanvasContext.drawImage(originalImageOffscreenCanvas, 0, 0, originalImageOffscreenCanvas.width, originalImageOffscreenCanvas.height, 0, 0, scaledWidth, scaledHeight);
+  };
+
+  // function syncVisibleCanvas(layer: CanvasLayer): void {
+  //   const { visibleCanvas, visibleCanvasContext, creationParams, originalImageOffscreenCanvas } = layer;
+  //   const originalImage = creationParams.image;
+
+  //   const scale = Math.min(visibleCanvas.width / originalImage.width, visibleCanvas.height / originalImage.height);
+  //   const scaledWidth = originalImage.width * scale;
+  //   const scaledHeight = originalImage.height * scale;
+
+  //   // visibleCanvas.width = scaledWidth;
+  //   // visibleCanvas.height = scaledHeight;
+
+  //   visibleCanvasContext.clearRect(0, 0, visibleCanvas.width, visibleCanvas.height);
+  //   visibleCanvasContext.drawImage(originalImageOffscreenCanvas, 0, 0, originalImage.width, originalImage.height, 0, 0, scaledWidth, scaledHeight);
+  // };
+
+  function removeCanvasLayer(layer: CanvasLayer): void {
+    layersParent.removeChild(layer.visibleCanvas);
+
+    layers.delete(layer);
+  }
+
+  function createCanvasLayer(params: LayerCreationParams): CanvasLayer {
+    /**
+     * Create an off-screen canvas for the original image
+     */
+    const originalImageOffscreenCanvas = new OffscreenCanvas(params.image.width, params.image.height);
+    const originalImageOffscreenContext = originalImageOffscreenCanvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
+
+    /**
+     * Save original image data to the offscreen canvas
+     */
+    originalImageOffscreenContext.drawImage(params.image, 0, 0);
+    const imageData = originalImageOffscreenContext.getImageData(0, 0, originalImageOffscreenCanvas.width, originalImageOffscreenCanvas.height);
+
+    /**
+     * Create a visible canvas layer
+     */
+    const visibleCanvas = document.createElement('canvas');
+    const visibleCanvasContext = visibleCanvas.getContext('2d') as CanvasRenderingContext2D;
+
+    visibleCanvas.width = layersParent.offsetWidth;
+    visibleCanvas.height = layersParent.offsetHeight;
+
+    layersParent.appendChild(visibleCanvas);
 
     const layer: CanvasLayer = {
-      canvas,
-      creationParams: params ?? {},
+      imageData,
+      imageDataWithoutFilters: imageData,
+      visibleCanvas,
+      visibleCanvasContext,
+      originalImageOffscreenCanvas,
+      originalImageOffscreenContext,
+      creationParams: params,
       state: {
         rotation: 0,
+        crop: {
+          x: 0,
+          y: 0,
+          width: 0,
+          height: 0,
+        },
+        filters: {
+          brightness: 0,
+          contrast: 0,
+          saturation: 0,
+          warmth: 0,
+          fade: 0,
+          highlights: 0,
+          shadows: 0,
+          vignette: 0,
+          grain: 0,
+          sharpen: 0,
+        },
       },
-      originalImageData: undefined,
-      redraw: (): void => drawCanvasLayer(layer),
       remove: (): void => {
-        layersParent.removeChild(canvas);
+        removeCanvasLayer(layer);
       },
-      save: (): void => {
-        saveLayer(layer);
+      save: (withoutFilters: boolean = false): void => {
+        saveLayer(layer, withoutFilters);
       },
       rotate: (angle: number): void => {
         rotateCanvasLayerContent(layer, angle);
@@ -364,18 +510,27 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
       crop: (x: number, y: number, width: number, height: number): void => {
         cropCanvas(layer, x, y, width, height);
       },
+      restoreState: (): void => {
+        restoreState(layer);
+      },
+      applyFilter: (filterName: keyof CanvasFilters, value: number): void => {
+        applyCanvasFilter(layer, filterName, value);
+      },
+      sync: (): void => {
+        syncVisibleCanvas(layer);
+      },
+      // initDrawing: (): void => {
+
+      // }
     };
 
     layers.add(layer);
 
-    drawCanvasLayer(layer);
+    syncVisibleCanvas(layer);
 
-    // Store the original image data
-    const context = canvas.getContext('2d');
-    if (context && layer.creationParams.bgImage) {
-      context.drawImage(layer.creationParams.bgImage, 0, 0, canvas.width, canvas.height);
-      layer.originalImageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    }
+    layer.save();
+    layer.save(true);
+    drawWithoutFilters(layer);
 
     return layer;
   }
@@ -411,6 +566,40 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     });
   }
 
+  async function exportBoxesToCanvas(layer: DivLayer, width: number, height: number): HTMLCanvasElement {
+    const scaleFactor = 10;
+
+    const highResCanvas = document.createElement('canvas');
+    const highResContext = highResCanvas.getContext('2d');
+
+    if (!highResContext) {
+      throw new Error('Could not get high-res canvas context');
+    }
+
+    highResCanvas.width = width * scaleFactor;
+    highResCanvas.height = height * scaleFactor;
+
+    highResContext.scale(scaleFactor, scaleFactor);
+
+    const scaleX = width / layer.rect.width;
+    const scaleY = height / layer.rect.height;
+
+    const queue = new PromiseQueue();
+
+    layer.boxes.forEach((box) => {
+      queue.add(async () => {
+        const boxCanvas = await box.export(scaleFactor * scaleY);
+        const { position } = box;
+
+        highResContext.drawImage(boxCanvas, position.x * scaleX, position.y * scaleY, boxCanvas.width / scaleFactor, boxCanvas.height / scaleFactor);
+      });
+    });
+
+    await queue.completed;
+
+    return highResCanvas;
+  }
+
   function createDivLayer(): DivLayer {
     const div = document.createElement('div');
 
@@ -436,7 +625,6 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
         bottom: 0,
         left: 0,
       } as DOMRect,
-      creationParams: {},
       redraw: (): void => {
         div.innerHTML = '';
       },
@@ -445,7 +633,6 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
           box.remove();
         });
         layersParent.removeChild(div);
-
         layers.delete(layer);
       },
       createBox: (params: DraggableBoxCreationAttributes): DraggableBox => {
@@ -495,6 +682,9 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
           box.deactivate();
         });
       },
+      export: async (width: number, height: number): Promise<HTMLCanvasElement> => {
+        return await exportBoxesToCanvas(layer, width, height);
+      },
     };
 
     layers.add(layer);
@@ -515,11 +705,62 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     layers.clear();
   }
 
+  /**
+   * Combine all layers into one canvas and return it
+   */
+  async function exportLayers(): Promise<HTMLCanvasElement> {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+
+    if (!context) {
+      throw new Error('Could not get canvas context');
+    }
+    const baseCanvasLayer = getBaseCanvasLayer();
+
+    canvas.width = baseCanvasLayer.originalImageOffscreenCanvas.width;
+    canvas.height = baseCanvasLayer.originalImageOffscreenCanvas.height;
+
+    context.drawImage(baseCanvasLayer.originalImageOffscreenCanvas, 0, 0);
+
+    const queue = new PromiseQueue();
+
+    layers.forEach((layer) => {
+      if (isCanvasLayer(layer)) {
+        return;
+      }
+
+      queue.add(async () => {
+        const divCanvasHighRes = await layer.export(baseCanvasLayer.originalImageOffscreenCanvas.width, baseCanvasLayer.originalImageOffscreenCanvas.height);
+
+        /**
+         * Scale down and merge
+         */
+        const divCanvas = document.createElement('canvas');
+        divCanvas.width = baseCanvasLayer.originalImageOffscreenCanvas.width;
+        divCanvas.height = baseCanvasLayer.originalImageOffscreenCanvas.height;
+        const divContext = divCanvas.getContext('2d');
+
+        if (!divContext) {
+          throw new Error('Could not get div context');
+        }
+
+        divContext.drawImage(divCanvasHighRes, 0, 0, divCanvas.width, divCanvas.height);
+
+        context.drawImage(divCanvas, 0, 0);
+      });
+    });
+
+    await queue.completed;
+
+    return canvas;
+  }
+
   return {
     createCanvasLayer,
     createDivLayer,
     destroy,
     resizeToFit,
     getBaseCanvasLayer,
+    exportLayers,
   };
 }
