@@ -305,7 +305,6 @@ export function useTextTool(params: UseTextToolParams) {
        */
       onResize: (newWidth) => {
         const startState = state.get(box) as TextareaState;
-
         const scaleRatio = newWidth / startState.originalWidth;
         const newFontSize = startState.fontSize * scaleRatio;
 
@@ -493,6 +492,25 @@ export function useTextTool(params: UseTextToolParams) {
     drawSvgShape(box);
   }
 
+  async function setFont(fontFamily: string): Promise<void> {
+    const box = params.layer.getActiveBox();
+
+    if(!box) {
+      return;
+    }
+
+    const textarea = box.el.querySelector(`.${CSS.textBox}`) as HTMLTextAreaElement;
+
+    if(!textarea) {
+      return;
+    }
+
+    const toBeBold = ['Roboto', 'Courier New', 'Georgia'];
+
+    textarea.style.fontFamily = fontFamily;
+    textarea.style.fontWeight = toBeBold.includes(fontFamily) ? 'bold' : 'normal';
+  }
+
   function setColor(color: string): void {
     const box = params.layer.getActiveBox();
     const boxState = state.get(box) as TextareaState;
@@ -532,6 +550,7 @@ export function useTextTool(params: UseTextToolParams) {
     setTextSize,
     setStyle,
     setAlignment,
-    setColor
+    setColor,
+    setFont
   };
 }

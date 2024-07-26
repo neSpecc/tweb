@@ -923,6 +923,8 @@ export function useDraggableBox() {
    * depending on the parent rect size change and the original box position
    */
   function restoreBoxPosition(box: DraggableBox) {
+    box.creationAttributes.onBeforeResize?.();
+
     const parent = parentMap.get(box.el);
 
     if(!parent) {
@@ -1068,8 +1070,10 @@ export function useDraggableBox() {
         //   yOffset -= fontSize * 0.09;
         // }
 
+        const ascentOverride = 0.9;
+
         let textLeftOffset = boxPaddingLeft + linePaddingLeft;
-        const textTopOffset = lineOffsetFromBox + linePaddingTop + textHeight;
+        const textTopOffset = lineOffsetFromBox + linePaddingTop + textHeight * ascentOverride;
 
         if(alignment === 'right') {
           textLeftOffset = canvas.width - boxPaddingLeft - linePaddingLeft - textMetrics.width;

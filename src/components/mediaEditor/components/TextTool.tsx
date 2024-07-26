@@ -32,15 +32,15 @@ export default function TextTool(props: TextToolProps) {
     ['backgrounded', 'fontframe_white']
   ];
 
-  const fonts = [
-    'Roboto',
-    'Typewriter',
-    'Avenir Next',
-    'Courier New',
-    'Noteworthy',
-    'Georgia',
-    'Papyrus',
-    'Snell Roundhand'
+  const fonts: [string, string, Record<string, string>?][] = [
+    ['Roboto', 'Roboto'],
+    ['Typewriter', 'ITC American Typewriter Std'],
+    ['Avenir Next', 'Avenir Next Cyr'],
+    ['Courier New', 'Courier New', {fontWeight: 'bold'}],
+    ['Noteworthy', 'Noteworthy'],
+    ['Georgia', 'Georgia', {fontWeight: 'bold'}],
+    ['Papyrus', 'Papyrus', {fontSize: '18px'}],
+    ['Snell Roundhand', 'SnellRoundhand', {fontSize: '18px'}]
   ];
 
   function init() {
@@ -86,7 +86,7 @@ export default function TextTool(props: TextToolProps) {
 
   function selectFont(index: number) {
     setFont(index);
-    // textTool()?.setFont(fonts[index]);
+    textTool()?.setFont(fonts[index][1]);
   }
 
   function setStyle(index: number) {
@@ -99,7 +99,9 @@ export default function TextTool(props: TextToolProps) {
     textTool()?.setAlignment(alignments[index][0]);
   }
 
-  function createTextRow(title: string, index: number) {
+  function createTextRow(fontData: [string, string, Record<string, string>?], index: number) {
+    const [displayName, fontName, adjustments] = fontData;
+
     const row = (
       <div
         classList={{
@@ -108,8 +110,15 @@ export default function TextTool(props: TextToolProps) {
         }}
         onClick={_ => selectFont(index)}
       >
-        <div class="pe-settings-row__title">
-          {title}
+        <div
+          class="pe-settings-row__title"
+          style={{
+            'font-family': fontName,
+            'font-weight': adjustments?.fontWeight,
+            'font-size': adjustments?.fontSize
+          }}
+        >
+          {displayName}
         </div>
       </div>
     );
@@ -179,8 +188,8 @@ export default function TextTool(props: TextToolProps) {
         <div class="pe-settings__section-header">
           Font
         </div>
-        {fonts.map((title, index) => (
-          createTextRow(title, index)
+        {fonts.map((font, index) => (
+          createTextRow(font, index)
         ))}
       </div>
     </div>

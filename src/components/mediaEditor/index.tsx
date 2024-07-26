@@ -20,16 +20,17 @@ import canvasToFile from '../../helpers/canvas/canvasToFile';
 /**
  * Now working
  *
- * @todo add stikers
  * @todo color picker
- * @todo change fonts
  * @todo add undo/redo
  * @todo saving rotated texts
  *
+ * Critical bugs
+ * - erase tool not working
+ *
  * Working but not ideal
  *
- * @todo erase tool not working
- *
+ * @todo crop by enter
+ * @todo delete active draggable box by delete (if caret is not set)
  * @todo increase border-radius of text along with scale up
  * @todo second rotate90 decreases width
  * @todo default text background is black, but need a white
@@ -248,15 +249,16 @@ function MediaEditor(params: {
     }
   });
 
+  onMount(() => {
+    prepareFonts();
+  })
+
   async function saveResult() {
     const result = await layerManager()!.exportLayers();
 
     const file = canvasToFile(result, 'image/png');
 
     params.onSave(file);
-
-    // document.body.innerHTML = '';
-    // document.body.appendChild(result);
   }
 
   function createTab(icon: keyof typeof Icons, index: number) {
@@ -272,6 +274,29 @@ function MediaEditor(params: {
     ripple(tabEl as HTMLElement);
 
     return tabEl;
+  }
+
+  function prepareFonts() {
+    const fonts = [
+      ['ITC American Typewriter Std', 'assets/fonts/AmericanTypewriterStd-Bold.woff2', '90%'],
+      ['Avenir Next Cyr', 'assets/fonts/AvenirNextCyr-BoldItalic.woff2'],
+      ['Noteworthy', 'assets/fonts/Noteworthy-Bold.woff2', '90%'],
+      ['Papyrus', 'assets/fonts/PapyrusV2.woff2'],
+      ['SnellRoundhand', 'assets/fonts/SnellBT-Bold.otf']
+    ]
+
+    fonts.forEach(([name, url, ascentOverride]) => {
+      const font = new FontFace(name, `url(${url})`);
+
+      if(ascentOverride) {
+        font.ascentOverride = ascentOverride;
+      }
+      font.load().then(() => {
+        document.fonts.add(font);
+      }).catch((e) => {
+        console.error(e);
+      });
+    })
   }
 
   return (
