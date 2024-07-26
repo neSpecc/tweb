@@ -353,6 +353,7 @@ html.no-touch .draggable-box .super-sticker:hover {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 2;
 }
 
 .draggable-box__corner--top-left {

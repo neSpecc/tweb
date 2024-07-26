@@ -100,15 +100,37 @@ export default function Stickers(props: StickersProps) {
     return button;
   }
 
-  function onStickerSelect(sticker: Document): void {
+  function onStickerSelect(sticker: Document.document): void {
     console.log('sticker -->', sticker);
 
-    (sticker as Document.document).animated = false;
+
+    sticker.animated = false;
 
     const stickerRendered = renderer().renderSticker(sticker as MyDocument);
 
-    stickerRendered.style.width = '200px';
-    stickerRendered.style.height = '200px';
+    stickerRendered.classList.add('pe-sticker')
+
+    let initialWidth = Math.min(200, sticker.w);
+    let initialHeight = Math.min(200, sticker.h);
+    const ratio = initialWidth / initialHeight;
+
+    if(sticker.w > sticker.h) {
+      initialHeight = initialWidth / ratio;
+    } else {
+      initialWidth = initialHeight / ratio;
+    }
+
+    console.log('initialWidth', initialWidth)
+    console.log('initialHeight', initialHeight)
+
+    stickerRendered.style.width = `${initialWidth}px`;
+    stickerRendered.style.height = `${initialHeight}px`;
+
+    /**
+     * Save original
+     */
+    stickerRendered.dataset.w = `${sticker.w}`;
+    stickerRendered.dataset.h = `${sticker.h}`;
 
     const box = stickersLayer().createBox({
       rotatable: true,

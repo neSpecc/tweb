@@ -1003,86 +1003,118 @@ export function useDraggableBox() {
     canvas.width = box.position.width * scaleFactor;
     canvas.height = box.position.height * scaleFactor;
 
-    ctx.fillStyle = 'rgba(255, 255, 255, .2)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // ctx.fillStyle = 'rgba(255, 255, 255, .2)';
+    // ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const boxContent = box.el.querySelector(`.${CSS.draggableBoxContent}`) as HTMLElement;
     const boxText = box.el.querySelector('.text-box') as HTMLElement;
-    const boxTextLines = Array.from(boxContent.querySelectorAll('.text-box__line')) as HTMLDivElement[];
+    const boxSticker = box.el.querySelector('.super-sticker') as HTMLElement;
 
-    const computedStyles = window.getComputedStyle(boxText);
-    const fontSize = computedStyles.fontSize ? Number.parseInt(computedStyles.fontSize) * scaleFactor : 16 * scaleFactor;
-    const fontFamily = computedStyles.fontFamily || 'serif';
-    const color = computedStyles.color || 'black';
-    const fontWeight = computedStyles.fontWeight || 'normal';
-    const boxPaddingTop = computedStyles.paddingTop ? Number.parseInt(computedStyles.paddingTop) * scaleFactor : 0;
-    const boxPaddingLeft = computedStyles.paddingLeft ? Number.parseInt(computedStyles.paddingLeft) * scaleFactor : 0;
-    const linePaddingTop = 2 * scaleFactor;
-    const linePaddingLeft = 6 * scaleFactor;
-    const textLineHeight = computedStyles.lineHeight ? Number.parseInt(computedStyles.lineHeight) * scaleFactor : 20 * scaleFactor;
-    const textLineHeightSpaces = (textLineHeight - fontSize) / 2;
+    if(boxText) {
+      const computedStyles = window.getComputedStyle(boxText);
+      const boxPaddingTop = computedStyles.paddingTop ? Number.parseInt(computedStyles.paddingTop) * scaleFactor : 0;
+      const boxPaddingLeft = computedStyles.paddingLeft ? Number.parseInt(computedStyles.paddingLeft) * scaleFactor : 0;
+      const boxTextLines = Array.from(boxContent.querySelectorAll('.text-box__line')) as HTMLDivElement[];
 
-    const boxBackgroundShape = box.el.querySelector('svg') as SVGElement;
+      const fontSize = computedStyles.fontSize ? Number.parseInt(computedStyles.fontSize) * scaleFactor : 16 * scaleFactor;
+      const fontFamily = computedStyles.fontFamily || 'serif';
+      const color = computedStyles.color || 'black';
+      const fontWeight = computedStyles.fontWeight || 'normal';
 
-    const alignment = box.meta.alignment;
-    const style = box.meta.style;
+      const linePaddingTop = 2 * scaleFactor;
+      const linePaddingLeft = 6 * scaleFactor;
+      const textLineHeight = computedStyles.lineHeight ? Number.parseInt(computedStyles.lineHeight) * scaleFactor : 20 * scaleFactor;
+      const textLineHeightSpaces = (textLineHeight - fontSize) / 2;
 
-    if(boxBackgroundShape) {
-      const svgString = new XMLSerializer().serializeToString(boxBackgroundShape);
+      const boxBackgroundShape = box.el.querySelector('svg') as SVGElement;
 
-      const img = await loadSvgImage(`data:image/svg+xml,${encodeURIComponent(svgString)}`);
+      const alignment = box.meta.alignment;
+      const style = box.meta.style;
 
-      ctx.drawImage(img, 0, boxPaddingTop / scaleFactor, canvas.width, canvas.height);
+      if(boxBackgroundShape) {
+        const svgString = new XMLSerializer().serializeToString(boxBackgroundShape);
+
+        const img = await loadSvgImage(`data:image/svg+xml,${encodeURIComponent(svgString)}`);
+
+        // 0 ??
+        ctx.drawImage(img, 0, boxPaddingTop / scaleFactor, canvas.width, canvas.height);
+      }
+
+      // let yOffset = boxPaddingTop + fontSize * 0.15;
+
+      boxTextLines.forEach((line) => {
+        const text = line.textContent;
+        if(!text) {
+          return;
+        }
+
+        const lineOffsetFromBox = line.offsetTop * scaleFactor;
+
+        ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+        ctx.fillStyle = color;
+
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 1 * scaleFactor;
+
+        const textMetrics = ctx.measureText(text);
+        const textHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
+        console.log('textHeight', textHeight);
+
+        // yOffset += lineHeight;
+
+        // const uppercaseLettersPattern = /\p{Lu}/u;
+
+        // if(uppercaseLettersPattern.test(text)) {
+        //   yOffset -= fontSize * 0.09;
+        // }
+
+        let textLeftOffset = boxPaddingLeft + linePaddingLeft;
+        const textTopOffset = lineOffsetFromBox + linePaddingTop + textHeight;
+
+        if(alignment === 'right') {
+          textLeftOffset = canvas.width - boxPaddingLeft - linePaddingLeft - textMetrics.width;
+        }
+        else if(alignment === 'center') {
+          textLeftOffset = (canvas.width - textMetrics.width) / 2;
+        }
+
+        if(style === 'stroked') {
+          ctx.strokeStyle = '#000';
+          ctx.lineWidth = 5 * scaleFactor;
+          ctx.strokeText(text, boxPaddingLeft + linePaddingLeft, textTopOffset);
+        }
+
+        ctx.fillText(text, textLeftOffset, textTopOffset);
+
+        // yOffset += linePaddingTop * 2 + fontSize * 0.3;
+      });
+    } else if(boxSticker) {
+      const stickerCanvas = boxSticker.querySelector('canvas');
+      const stickerVideo = boxSticker.querySelector('video');
+      const stickerImg = boxSticker.querySelector('img');
+      const originalWidth = Number.parseInt(boxSticker.dataset.w);
+      const originalHeidht = Number.parseInt(boxSticker.dataset.h);
+
+      if(stickerCanvas) {
+        ctx.drawImage(stickerCanvas, 0, 0, box.position.width * scaleFactor, box.position.height * scaleFactor)
+      } else if(stickerImg || stickerVideo) {
+        let imageWidth = box.position.width * scaleFactor;
+        let imageHeight = 0;
+        const ratio = originalWidth / originalHeidht;
+
+        if(originalWidth > originalHeidht) {
+          imageHeight = imageWidth / ratio;
+        } else {
+          imageHeight = box.position.width * scaleFactor
+          imageWidth = imageHeight / ratio;
+        }
+
+        const topOffset = (box.position.height * scaleFactor - imageHeight) / 2;
+        const leftOffset = (box.position.width * scaleFactor - imageWidth) / 2;
+
+        ctx.drawImage(stickerImg ?? stickerVideo, leftOffset, topOffset, imageWidth, imageHeight)
+      }
     }
-
-    // let yOffset = boxPaddingTop + fontSize * 0.15;
-
-    boxTextLines.forEach((line) => {
-      const text = line.textContent;
-      if(!text) {
-        return;
-      }
-
-      const lineOffsetFromBox = line.offsetTop * scaleFactor;
-
-      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
-      ctx.fillStyle = color;
-
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 1 * scaleFactor;
-
-      const textMetrics = ctx.measureText(text);
-      const textHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
-      console.log('textHeight', textHeight);
-
-      // yOffset += lineHeight;
-
-      // const uppercaseLettersPattern = /\p{Lu}/u;
-
-      // if(uppercaseLettersPattern.test(text)) {
-      //   yOffset -= fontSize * 0.09;
-      // }
-
-      let textLeftOffset = boxPaddingLeft + linePaddingLeft;
-      const textTopOffset = lineOffsetFromBox + linePaddingTop + textHeight;
-
-      if(alignment === 'right') {
-        textLeftOffset = canvas.width - boxPaddingLeft - linePaddingLeft - textMetrics.width;
-      }
-      else if(alignment === 'center') {
-        textLeftOffset = (canvas.width - textMetrics.width) / 2;
-      }
-
-      if(style === 'stroked') {
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 5 * scaleFactor;
-        ctx.strokeText(text, boxPaddingLeft + linePaddingLeft, textTopOffset);
-      }
-
-      ctx.fillText(text, textLeftOffset, textTopOffset);
-
-      // yOffset += linePaddingTop * 2 + fontSize * 0.3;
-    });
 
     return canvas;
   }
