@@ -147,7 +147,7 @@ export default function TextTool(props: TextToolProps) {
   }
 
   return (
-    <div class="pe-settings">
+    <div class="pe-settings pe-settings-gapper">
       <ColorSelector
         onSelect={selectColor}
       />
@@ -163,24 +163,26 @@ export default function TextTool(props: TextToolProps) {
           ))}
         </div>
       </div>
-      <div class="pe-settings__section-header pe-settings__section-header--slider">
-        Size
+      <div class="pe-settings-adjust">
+        <div class="pe-settings-adjust-header">
+          Size
 
-        <div class='pe-settings__slider-counter'>
-          { Math.floor(fontSize()) }
+          <div class='pe-settings-adjust-header-counter'>
+            { Math.floor(fontSize()) }
+          </div>
         </div>
-      </div>
 
-      <div class="pe-settings__slider media-editor-slider">
-        { RangeSelectorTsx({
-          value: fontSize(),
-          step: 1,
-          min: 10,
-          max: 80,
-          onScrub(value) {
-            handleFontSizeChange(value);
-          }
-        }) }
+        <div class="media-editor-slider">
+          { RangeSelectorTsx({
+            value: fontSize(),
+            step: 1,
+            min: 10,
+            max: 80,
+            onScrub(value) {
+              handleFontSizeChange(value);
+            }
+          }) }
+        </div>
       </div>
 
 
