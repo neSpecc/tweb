@@ -44,18 +44,11 @@ export default function TextTool(props: TextToolProps) {
   ];
 
   function init() {
-    let layer = textLayer();
+    const layer = props.layerMaganer().getTextLayer();
 
-    /**
-     * Initialize text layer if it is  not already initialized
-     */
-    if(layer === undefined) {
-      layer = props.layerMaganer().createDivLayer();
+    setTextLayer(layer);
 
-      setTextLayer(layer);
-    }
-
-    textLayer().div.style.pointerEvents = 'auto';
+    layer.enable();
 
     const tool = useTextTool({
       layer,
@@ -70,7 +63,7 @@ export default function TextTool(props: TextToolProps) {
   }
 
   function destroy() {
-    textLayer().div.style.pointerEvents = 'none';
+    textLayer().disable();
     textLayer().deactivateAllBoxes();
     textTool()?.destroy();
   }

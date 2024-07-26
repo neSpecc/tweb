@@ -55,6 +55,8 @@ export interface DivLayer extends LayerBase {
   removeAllBoxes: () => void;
   deactivateAllBoxes: () => void;
   export: (width: number, height: number) => Promise<HTMLCanvasElement>;
+  enable: () => void;
+  disable: () => void;
 }
 
 export type Layer = CanvasLayer | DivLayer;
@@ -67,8 +69,11 @@ export interface LayerCreationParams {
 export function useCanvasLayers(params?: UseCanvasLayersParams) {
   const layers = new Set<Layer>();
 
+  let textLayer: DivLayer | null = null;
+  let stickersLayer: DivLayer | null = null;
+
   const {create: createDraggableBox} = useDraggableBox();
-  const {applyFilter, restoreFilters} = useFilters();
+  const {restoreFilters} = useFilters();
 
   if(!params?.wrapperEl) {
     throw new Error('wrapperEl is required');
@@ -621,6 +626,14 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
       },
       export: async(width: number, height: number): Promise<HTMLCanvasElement> => {
         return exportBoxesToCanvas(layer, width, height);
+      },
+      enable: () => {
+        layer.div.classList.add('layer-active')
+        layer.div.style.pointerEvents = 'auto';
+      },
+      disable: () => {
+        layer.div.classList.remove('layer-active')
+        layer.div.style.pointerEvents = 'none';
       }
     };
 
@@ -692,12 +705,30 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     return canvas;
   }
 
+  function getTextLayer() {
+    if(textLayer === null) {
+      textLayer = createDivLayer();
+    }
+
+    return textLayer;
+  }
+
+  function getStickersLayer() {
+    if(stickersLayer === null) {
+      stickersLayer = createDivLayer();
+    }
+
+    return stickersLayer;
+  }
+
   return {
     createCanvasLayer,
     createDivLayer,
     destroy,
     resizeToFit,
     getBaseCanvasLayer,
+    getTextLayer,
+    getStickersLayer,
     exportLayers
   };
 }

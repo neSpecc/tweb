@@ -194,11 +194,44 @@ export default class Chat extends EventListenerBase<{
     this.backgroundTempId = 0;
     this.sharedMediaTabs = [];
 
-  //   PopupElement.createPopup(PopupMediaEditor, {
-  //     // file: params.sendFileParams.file,
-  //     // width: params.sendFileParams.width,
-  //     // height: params.sendFileParams.height
-  //   }).show();
+    function createFileFromImageElement(img: HTMLImageElement, fileName: string): Promise<File> {
+      return new Promise((resolve, reject) => {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+
+        if(!context) {
+          reject(new Error('Failed to get canvas context'));
+          return;
+        }
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        context.drawImage(img, 0, 0, img.width, img.height);
+
+        canvas.toBlob((blob) => {
+          if(blob) {
+            const file = new File([blob], fileName, {type: blob.type});
+            resolve(file);
+          } else {
+            reject(new Error('Failed to create Blob from canvas'));
+          }
+        }, 'image/png');
+      });
+    }
+
+    // const img = new Image();
+    // img.src = 'https://leonardo.osnova.io/ed0d991b-0df2-5b9d-b138-985cd4eb782e/-/preview/1200x/-/format/webp';
+    // img.crossOrigin = 'anonymous';
+    // img.onload = async() => {
+    //   const file = await createFileFromImageElement(img, 'image.png');
+    //   PopupElement.createPopup(PopupMediaEditor, {
+    //     file,
+    //     width: img.width,
+    //     height: img.height,
+    //     onSave: () => {}
+    //   }).show();
+    // };
   }
 
   public hasBackgroundSet() {

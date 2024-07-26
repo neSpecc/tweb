@@ -71,6 +71,10 @@
   will-change: transform;
 }
 
+.media-editor .layer-active {
+  z-index: 5;
+}
+
 .options-wrapper {
   background-color: var(--bg-aside);
   overflow: hidden;
@@ -304,9 +308,19 @@
   z-index: 2;
 }
 
-.draggable-box--active {
+.layer-active .draggable-box,
+.layer-active .draggable-box [contenteditable] {
   cursor: grab;
 }
+
+.layer-active .draggable-box--active [contenteditable] {
+  cursor: text;
+}
+
+html.no-touch .draggable-box .super-sticker:hover {
+  background: transparent;
+}
+
 
 .draggable-box--dashed.draggable-box--active {
   background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' stroke='rgba(255,255,255,.3)' stroke-width='2' stroke-dasharray='2%2c 7' stroke-dashoffset='0' stroke-linecap='round'/%3e%3c/svg%3e");
@@ -315,6 +329,7 @@
 .draggable-box--solid.draggable-box--active {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
+
 
 
 
@@ -862,4 +877,61 @@
 .pe-settings-row:hover .media-editor-tool-icon::before,
 .pe-settings-row--selected .media-editor-tool-icon::before {
   background: linear-gradient(90deg, var(--bg-hover) 0%, rgba(43,43,43,0) 100%);
+}
+
+.pe-stickers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pe-stickers-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 70px);
+  gap: 6px;
+  padding: 0 5px;
+}
+
+.pe-stickers-packs {
+  display: flex;
+  overflow: scroll;
+}
+
+.pe-stickers-packs-scrollable {
+  display: flex;
+  gap: 16px;
+  white-space: nowrap;
+  grid-template-columns: repeat(auto-fill, 30px);
+  height: 48px;
+  padding: 9px 10px;
+
+  .btn-icon {
+    font-size: 1.5rem;
+    padding: 3px;
+  }
+  .grid-item {
+    display: block;
+    width: 30px;
+    height: 30px;
+    position: relative;
+  }
+
+  .media-sticker {
+    height: 30px;
+  }
+}
+
+.pe-stickers-search {
+  background-color: var(--bg-hover);
+  height: 38px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  color: var(--color-secondary);
+  padding: 9px 16px;
+  gap: 6px;
+}
+
+.pe-stickers-set {
+  padding-top: 8px;
 }
