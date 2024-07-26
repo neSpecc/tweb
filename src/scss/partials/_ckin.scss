@@ -360,6 +360,14 @@ video::-webkit-media-controls-enclosure {
         }
       }
     }
+
+    &.to-left:not(.progress-line__loaded) {
+      &:after {
+        left: 0;
+        transform: translateX(calc(var(--thumb-size) / -2 * var(--reflect))) scale(1);
+        transition: none !important;
+      }
+    }
   }
 
   &.is-focused .progress-line__filled:not(.progress-line__loaded):after {

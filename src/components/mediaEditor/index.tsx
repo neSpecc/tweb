@@ -20,9 +20,10 @@ import canvasToFile from '../../helpers/canvas/canvasToFile';
 /**
  * Now working
  *
- * @todo color picker
  * @todo add undo/redo
  * @todo saving rotated texts
+ * @todo sliders from center
+ * @todo stickers search, tabbing
  *
  * Critical bugs
  * - erase tool not working

@@ -1,3 +1,4 @@
+import {isColorLight} from '../../../helpers/color';
 import type {DivLayer} from './useCanvasLayers';
 import type {DraggableBox} from './useDraggableBox';
 
@@ -520,7 +521,13 @@ export function useTextTool(params: UseTextToolParams) {
       return;
     }
 
-    textarea.style.color = boxState.style === 'backgrounded' ? (color === '#ffffff' ? '#000000' : '#ffffff') : color;
+    let textColor = color;
+
+    if(boxState.style === 'backgrounded') {
+      textColor = isColorLight(color) ? '#000000' : '#ffffff';
+    }
+
+    textarea.style.color = textColor;
 
     updateBoxParam(box, {
       color

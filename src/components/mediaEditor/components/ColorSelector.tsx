@@ -22,11 +22,13 @@ export default function ColorSelector(props: ColorSelectorProps) {
   ];
 
   function selectColor(index: number) {
+    const prevColor = colors[color()];
+
     setColor(index);
 
     if(colors[index] === 'custom') {
       setIsColorPickerShown(true);
-      colorPicker.setColor('#ef208b');
+      colorPicker.setColor(prevColor !== 'custom' ? prevColor : '#ef208b');
       return;
     }
 

@@ -13,6 +13,7 @@ export default class RangeSelector {
   public container: HTMLDivElement;
   protected filled: HTMLDivElement;
   protected seek: HTMLInputElement;
+  protected thumbSize: number;
 
   public mousedown = false;
   protected rect: DOMRect;
@@ -33,6 +34,7 @@ export default class RangeSelector {
   protected withTransition = false;
   protected useTransform = false;
   protected vertical = false;
+  protected zeroCentered = false;
 
   constructor(
     options: {
@@ -41,7 +43,8 @@ export default class RangeSelector {
       max?: RangeSelector['max'],
       withTransition?: RangeSelector['withTransition'],
       useTransform?: RangeSelector['useTransform'],
-      vertical?: RangeSelector['vertical']
+      vertical?: RangeSelector['vertical'],
+      zeroCentered?: RangeSelector['zeroCentered'],
     },
     value = 0
   ) {
@@ -74,6 +77,8 @@ export default class RangeSelector {
     const stepStr = '' + this.step;
     const index = stepStr.indexOf('.');
     this.decimals = index === -1 ? 0 : stepStr.length - index - 1;
+
+    this.thumbSize = parseInt(getComputedStyle(this.container).getPropertyValue('--thumb-size'), 10) || 0;
 
     this.container.append(this.filled, seek);
   }
@@ -136,11 +141,39 @@ export default class RangeSelector {
     let percents = (value - this.min) / (this.max - this.min);
     percents = clamp(percents, 0, 1);
 
+    if(!this.rect) {
+      this.rect = this.container.getBoundingClientRect();
+    }
+
     // using scaleX and width even with vertical because it will be rotated
     if(this.useTransform) {
       this.filled.style.transform = `scaleX(${percents})`;
     } else {
-      this.filled.style.width = (percents * 100) + '%';
+      if(!this.zeroCentered) {
+        this.filled.style.width = (percents * 100) + '%';
+      } else {
+        const containerWidth = this.rect.width;
+        const center = containerWidth / 2;
+
+        this.filled.classList.toggle('to-left', percents < 0.5);
+
+        if(percents === 0.5) { // zero
+          this.filled.style.width = '0';
+          this.filled.style.left = `50%`;
+        } else if(percents < 0.5) {
+          const width = (0.5 - percents) * 2 * center;
+          const left = center - width;
+
+          this.filled.style.width = `${width}px`;
+          this.filled.style.left = `${left}px`;
+        } else {
+          const width = (percents - 0.5) * 2 * center;
+          const left = center;
+
+          this.filled.style.width = `${width}px`;
+          this.filled.style.left = `${left}px`;
+        }
+      }
     }
   }
 

@@ -293,3 +293,21 @@ export function calculateOpacity(luminance: number, targetContrast: number) {
 
   return opacity;
 }
+
+export function isColorLight(hexColor: string, cutoff = 0.7): boolean {
+  if(hexColor.startsWith('#')) {
+    hexColor = hexColor.slice(1);
+  }
+
+  if(hexColor.length === 3) {
+    hexColor = hexColor.split('').map(c => c + c).join('');
+  }
+
+  const r = parseInt(hexColor.slice(0, 2), 16);
+  const g = parseInt(hexColor.slice(2, 4), 16);
+  const blue = parseInt(hexColor.slice(4, 6), 16);
+
+  const brightness = (0.299 * r + 0.587 * g + 0.114 * blue) / 255;
+
+  return brightness > cutoff;
+}

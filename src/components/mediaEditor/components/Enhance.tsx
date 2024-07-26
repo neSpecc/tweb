@@ -102,6 +102,7 @@ function Enhance(props: EnhanceProps) {
                   step: 1,
                   min,
                   max,
+                  zeroCentered: min < 0,
                   onScrub(value) {
                     handleFilterChange(value, effect.toString() as keyof CanvasLayer['state']['filters']);
                   }
