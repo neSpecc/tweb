@@ -1281,7 +1281,7 @@ const lang = {
   'RestrictSavingContentInfoChannel': 'Subscribers won\'t be able to copy, save or forward content from this channel.',
   'ClearOtherSessionsHelp': 'Logs out all devices except for this one.',
   'SessionsListInfo': 'The official Telegram app is available for Android, iPhone, iPad, Windows, macOS and Linux.',
-  'SponsoredMessage': 'sponsored',
+  'SponsoredMessage': 'ad',
   'OpenChannelPost': 'VIEW POST',
   'FilterNameHint': 'Folder name',
   'BotStart': 'START',
@@ -2490,7 +2490,7 @@ const lang = {
   'Chat.Message.ViewGroup': 'VIEW GROUP',
   'Chat.Message.SendMessage': 'SEND MESSAGE',
   'Chat.Message.Sponsored.What': 'What are sponsored messages?',
-  'Chat.Message.Sponsored.Link': 'https://promote.telegram.org',
+  'Chat.Message.Sponsored.Link': 'https://ads.telegram.org',
   'Chat.Voice.Transribe.Error': 'No speech detected',
   'Chat.VoiceChat.JoinLink.Participants_ZeroValueHolder': 'no one joined yet',
   'Checkout.2FA.Text': 'Saving payment details is only available with 2-Step Verification.',
@@ -2771,7 +2771,7 @@ const lang = {
   'Schedule.SendDate': 'Send on %@ at %@',
   'Schedule.SendWhenOnline': 'Send When Online',
   'Story.Tooltip.MessageSent': 'Message Sent.',
-  'Sticker.Premium.Click.Info': 'This pack contains premium stickers like this one. [View Pack]()',
+  'Sticker.Premium.Click.Info': 'This set contains premium stickers like this one. [View Set]()',
   'Stickers.Recent': 'Recent',
   // "Stickers.Favorite": "Favorite",
   'StickerSet.DontExist': 'Sorry, this sticker set doesn\'t seem to exist.',
@@ -2898,7 +2898,9 @@ const lang = {
   'Chat.UploadLimit.Text': {
     'one_value': 'Subscribe to [Telegram Premium]() to increase upload speeds %d time.',
     'other_value': 'Subscribe to [Telegram Premium]() to increase upload speeds %d times.'
-  }
+  },
+  'MediaEditor.DiscardQuestion': 'Discard editing?',
+  'MediaEditor.DiscardQuestionText': 'Are you sure you want to discard this picture?'
 };
 
 export default lang;

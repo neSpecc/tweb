@@ -22,7 +22,6 @@ import canvasToFile from '../../helpers/canvas/canvasToFile';
  *
  * @todo add undo/redo
  * @todo saving rotated texts
- * @todo sliders from center
  * @todo stickers search, tabbing
  *
  * Critical bugs
@@ -34,11 +33,8 @@ import canvasToFile from '../../helpers/canvas/canvasToFile';
  * @todo delete active draggable box by delete (if caret is not set)
  * @todo increase border-radius of text along with scale up
  * @todo second rotate90 decreases width
- * @todo default text background is black, but need a white
  * @todo fix hightlighs and shadows filters
  * @todo fix erasing effect of the Blur Brush
- * @todo adjusting filters resets a crop
- * @todo improve animation after crop
  * @todo preselect text color is not working
  * @todo long text wrapping
  * @todo crop on Enter
@@ -130,24 +126,35 @@ function MediaEditor(params: {
     initialWidth = canvasWrapper.offsetWidth,
     initialHeight = canvasWrapper.offsetHeight,
     initialTop = canvasWrapper.offsetTop,
-    duration = 350
+    duration = 350,
+    animateOpacity = false
   ): void {
     const startTime = performance.now();
 
     const bezier = cubicBezier(bezierSize[0], bezierSize[1], bezierSize[2], bezierSize[3]);
     const bezierForTop = cubicBezier(bezierOfset[0], bezierOfset[1], bezierOfset[2], bezierOfset[3]);
 
+    if(animateOpacity) {
+      canvasWrapper.style.opacity = '0';
+    }
+
     function animate(time: number) {
       const elapsed = time - startTime;
       const t = Math.min(elapsed / duration, 1);
 
       const easedT = bezier(t);
+      const easedTopT = bezierForTop(t);
 
       const width = lerp(initialWidth, newWidth, easedT);
       const height = lerp(initialHeight, newHeight, easedT);
-      const top = lerp(initialTop, topOffset, bezierForTop(t));
+      const top = lerp(initialTop, topOffset, easedTopT);
 
       resizeCanvasWrapper(width, height, top);
+
+      if(animateOpacity) {
+        const opacity = t;
+        canvasWrapper.style.opacity = `${opacity}`;
+      }
 
       if(t < 1) {
         requestAnimationFrame(animate);

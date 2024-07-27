@@ -39,6 +39,14 @@
   justify-content: center;
   /* align-items: end; */
   /* overflow: hidden; */
+
+  &.crop-ready {
+    cursor: pointer;
+
+    .draggable-box {
+      cursor: default;
+    }
+  }
 }
 
 .media-editor__left-controls {
@@ -189,7 +197,7 @@
   overflow-y: auto;
 
   & > div {
-    animation: tab-in 250ms ease-in;
+    animation: tab-in 0.3s ease-in;
   }
 }
 
@@ -1009,5 +1017,11 @@ html.no-touch .draggable-box .super-sticker:hover {
 }
 
 .pe-stickers-set {
-  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  
+  &-item {
+    padding-top: 8px;
+  }
 }

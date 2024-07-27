@@ -7,14 +7,18 @@ interface UseTextToolParams {
   onFontSizeChange?: (value: number) => void;
 }
 
+type TextAlignment = 'left' | 'center' | 'right';
+type TextStyle = 'regular' | 'stroked' | 'backgrounded';
+
 interface TextareaState {
   fontSize: number;
   originalWidth: number;
   originalPaddingBlock: number;
   originalPaddingInline: number;
-  style: 'regular' | 'stroked' | 'backgrounded';
-  alignment: 'left' | 'center' | 'right';
+  style: TextStyle;
+  alignment: TextAlignment;
   color: string;
+  font: string;
 }
 
 export function useTextTool(params: UseTextToolParams) {
@@ -23,7 +27,20 @@ export function useTextTool(params: UseTextToolParams) {
    */
   const state = new WeakMap<DraggableBox, TextareaState>();
 
-  const currentFontSize = 45;
+  const preset: {
+    fontSize: number;
+    color: string;
+    alignment: TextAlignment;
+    style: TextStyle;
+    font: string;
+  } = {
+    fontSize: 45,
+    color: '#ffffff',
+    alignment: 'left',
+    style: 'regular',
+    font: 'Roboto'
+  };
+
   const originalPaddingBlock = 12;
   const originalPaddingInline = 10;
   const CSS = {
@@ -87,8 +104,6 @@ export function useTextTool(params: UseTextToolParams) {
 
   function focusEditableDiv(editableDiv: HTMLDivElement) {
     const lineWrapper = editableDiv.querySelectorAll(`.${CSS.textBoxLineWrapper}`);
-
-    console.log('lineWrapper', lineWrapper);
 
     if(lineWrapper.length === 0) {
       return;
@@ -376,7 +391,7 @@ export function useTextTool(params: UseTextToolParams) {
     params.layer.activateBox(box);
 
     updateBoxParam(box, {
-      fontSize: currentFontSize,
+      fontSize: preset.fontSize,
       originalWidth: textarea.offsetWidth,
       originalPaddingBlock,
       originalPaddingInline,
@@ -386,7 +401,12 @@ export function useTextTool(params: UseTextToolParams) {
     /**
      * Set initial font size and paddings
      */
-    changeBoxTextareaSize(box, currentFontSize);
+    changeBoxTextareaSize(box, preset.fontSize);
+
+    setColor(preset.color);
+    setAlignment(preset.alignment);
+    setStyle(preset.style);
+    setFont(preset.font);
 
     // requestAnimationFrame(() => {
     //   console.log('raw');
@@ -449,6 +469,7 @@ export function useTextTool(params: UseTextToolParams) {
     const box = params.layer.getActiveBox();
 
     if(!box) {
+      preset.style = style;
       return;
     }
 
@@ -474,6 +495,7 @@ export function useTextTool(params: UseTextToolParams) {
     const box = params.layer.getActiveBox()!;
 
     if(!box) {
+      preset.alignment = alignment;
       return;
     }
 
@@ -497,6 +519,7 @@ export function useTextTool(params: UseTextToolParams) {
     const box = params.layer.getActiveBox();
 
     if(!box) {
+      preset.font = fontFamily;
       return;
     }
 
@@ -518,6 +541,7 @@ export function useTextTool(params: UseTextToolParams) {
     const textarea = box?.el.querySelector(`.${CSS.textBox}`) as HTMLTextAreaElement;
 
     if(box === null || !textarea) {
+      preset.color = color;
       return;
     }
 

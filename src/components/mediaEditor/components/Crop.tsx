@@ -1,5 +1,5 @@
 import type {Accessor} from 'solid-js';
-import {For, createMemo, createSignal, onCleanup, onMount} from 'solid-js';
+import {For, createMemo, createSignal, onCleanup, onMount, createEffect} from 'solid-js';
 import type {DivLayer, useCanvasLayers} from '../services/useCanvasLayers';
 import type {LeftZoneControls} from '../services/leftZoneControls';
 import type {DraggableBox} from '../services/useDraggableBox';
@@ -21,6 +21,7 @@ interface CropProps {
     initialHeight?: number,
     initialTop?: number,
     duration?: number,
+    animateOpacity?: boolean
   ) => void;
 }
 
@@ -42,6 +43,7 @@ export default function Crop(props: CropProps) {
   const [aspectRatio, setAspectRatio] = createSignal<string>('Free');
   const [cropBox, setCropBox] = createSignal<DraggableBox>();
   const [canvasRotationApplied, setCanvasRotationApplied] = createSignal(0);
+  const [cropChanged, setCropChanged] = createSignal(false);
 
   const ratios: Ratio[][] = [
     [
@@ -234,22 +236,26 @@ export default function Crop(props: CropProps) {
     </div>
   );
 
-  let cropChanged = false;
-
   const canasClickOutsideListener = (event: MouseEvent) => {
-    console.log('CLICKED OUTSIDE PHOTO');
+    const isClickedOutsideCropBox = !cropBox()!.el.contains(event.target as Node);
 
-    const canvasWrapper = document.getElementById('canvasWrapper') as HTMLElement;
-    const isClickedOutsidePhoto = !canvasWrapper.contains(event.target as Node);
-
-    if(isClickedOutsidePhoto) {
+    if(isClickedOutsideCropBox) {
       crop(cropBox()!.position);
     }
   };
 
-  function initCrop() {
-    console.log('INIT CROP');
+  const documentKeydownListener = (event: KeyboardEvent) => {
+    if(event.key === 'Enter') {
+      crop(cropBox()!.position);
+    } else if(event.key === 'Escape') {
+      const {width, height} = getCropBoxDimensions();
+      updateCroppedZoneOverlay(width, height, 0, 0);
+      event.stopImmediatePropagation();
+      event.stopPropagation();
+    }
+  }
 
+  function initCrop() {
     const overlay = props.layerMaganer().createDivLayer();
     const layer = props.layerMaganer().createDivLayer();
 
@@ -275,10 +281,10 @@ export default function Crop(props: CropProps) {
         updateCroppedZoneOverlay(box.position.width, box.position.height, x, y);
       },
       onAfterDrag() {
-        cropChanged = true;
+        setCropChanged(true);
       },
       onAfterResize() {
-        cropChanged = true;
+        setCropChanged(true);
       }
     });
 
@@ -295,6 +301,7 @@ export default function Crop(props: CropProps) {
     const leftZone = document.querySelector('.media-editor__left') as HTMLElement;
 
     leftZone.addEventListener('mousedown', canasClickOutsideListener);
+    document.addEventListener('keydown', documentKeydownListener);
   }
 
   function deinitCrop() {
@@ -304,10 +311,11 @@ export default function Crop(props: CropProps) {
     const leftZone = document.querySelector('.media-editor__left') as HTMLElement;
 
     leftZone.removeEventListener('mousedown', canasClickOutsideListener);
+    document.removeEventListener('keydown', documentKeydownListener);
   }
 
   function crop({x, y, width, height}: { x: number; y: number; width: number; height: number }) {
-    if(!cropChanged) {
+    if(!cropChanged()) {
       return;
     }
 
@@ -348,8 +356,10 @@ export default function Crop(props: CropProps) {
       newCanvasWidth * 0.96,
       newCanvasHeight * 0.96,
       offsetTopAfter,
-      animationDuration
+      animationDuration,
+      true // animate opacity
     );
+
 
     setTimeout(() => {
       requestAnimationFrame(() => {
@@ -357,7 +367,7 @@ export default function Crop(props: CropProps) {
       });
     }, animationDuration);
 
-    cropChanged = false;
+    setCropChanged(false);
 
     layer.save();
   }
@@ -563,6 +573,16 @@ export default function Crop(props: CropProps) {
     // imageLayer.save();
   }
 
+  createEffect(() => {
+    const photoWrapper = document.querySelector('.media-editor__left-photo') as HTMLElement;
+
+    if(!photoWrapper) {
+      return;
+    }
+
+    photoWrapper.classList.toggle('crop-ready', cropChanged());
+  })
+
   // createEffect(() => rotateImage(angle()));
 
   function aspectRatioChanged(ratio: Ratio) {
@@ -570,7 +590,7 @@ export default function Crop(props: CropProps) {
 
     setAspectRatio(aspectRatio);
 
-    cropChanged = true;
+    setCropChanged(true);
 
     deinitCrop();
     initCrop();

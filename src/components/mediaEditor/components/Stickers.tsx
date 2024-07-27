@@ -177,7 +177,7 @@ export default function Stickers(props: StickersProps) {
         <div class="pe-stickers-set">
           <For each={sets()}>
             {(set) => (
-              <>
+              <div class="pe-stickers-set-item">
                 <div class="pe-settings__section-header">
                   {set.title}
                 </div>
@@ -193,7 +193,7 @@ export default function Stickers(props: StickersProps) {
                     )}
                   </For>
                 </div>
-              </>
+              </div>
             )}
           </For>
         </div>

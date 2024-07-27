@@ -1,5 +1,6 @@
 import PopupElement from '.';
 import {type SendFileDetails} from '../../lib/appManagers/appMessagesManager';
+import confirmationPopup from '../confirmationPopup';
 import MediaEditor from '../mediaEditor';
 
 export default class PopupMediaEditor extends PopupElement {
@@ -7,16 +8,22 @@ export default class PopupMediaEditor extends PopupElement {
     file: File,
     width: number,
     height: number,
-    onSave: (file: File) => void
+    onSave: (file: File) => void,
   }
   ) {
     super(
       'popup-media-editor',
       {
         overlayClosable: true,
-        onBackClick: () => {
-          console.log('back click');
-        },
+        closable: false,
+        isConfirmationNeededOnClose: () => confirmationPopup({
+          titleLangKey: 'MediaEditor.DiscardQuestion',
+          descriptionLangKey: 'MediaEditor.DiscardQuestionText',
+          button: {
+            langKey: 'Discard',
+            isDanger: true
+          }
+        }),
         body: true
       }
     );
