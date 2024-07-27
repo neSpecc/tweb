@@ -36,6 +36,9 @@ import canvasToFile from '../../helpers/canvas/canvasToFile';
  * @todo long text wrapping
  * @todo text bold settings is not applied
  * @todo don't confirm hiding on save
+ * @todo rotate crop ratio icons
+ * @todo snell roundhand font lays out on left side incorrectly
+ * @todo i18n
  *
  */
 function MediaEditor(params: {

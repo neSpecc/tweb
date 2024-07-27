@@ -110,7 +110,7 @@ export default function Crop(props: CropProps) {
     <div class="pe-resizer-wrapper">
       <div class="pe-resizer">
         <div class="pe-resizer__left">
-          <span class="pe-resizer__rotate" onClick={rotate90}>
+          <span class="pe-resizer__rotate" onClick={() => { !isRotateAlongWithCrop && rotate90() }}>
             { Icon('rotate') }
           </span>
         </div>
@@ -236,11 +236,23 @@ export default function Crop(props: CropProps) {
     </div>
   );
 
-  const canasClickOutsideListener = (event: MouseEvent) => {
-    const isClickedOutsideCropBox = !cropBox()!.el.contains(event.target as Node);
+  let isRotateAlongWithCrop = false;
 
-    if(isClickedOutsideCropBox) {
+  const canasClickOutsideListener = async(event: MouseEvent) => {
+    const isClickedOutsideCropBox = !cropBox()!.el.contains(event.target as Node);
+    const isClickedOnRotation = document.querySelector('.pe-resizer__rotate')!.contains(event.target as Node);
+
+    if(!isClickedOutsideCropBox) {
+      return;
+    }
+
+    if(!isClickedOnRotation) {
       crop(cropBox()!.position);
+    } else {
+      isRotateAlongWithCrop = true;
+
+      await crop(cropBox()!.position);
+      rotate90();
     }
   };
 
@@ -284,6 +296,14 @@ export default function Crop(props: CropProps) {
         setCropChanged(true);
       },
       onAfterResize() {
+        const canvasWrapper = document.getElementById('canvasWrapper') as HTMLElement;
+        const canvasWrapperRect = canvasWrapper.getBoundingClientRect();
+        const {width, height} = box.position;
+
+        if(width == Math.floor(canvasWrapperRect.width) && height === Math.floor(canvasWrapperRect.height)) {
+          return;
+        }
+
         setCropChanged(true);
       }
     });
@@ -314,62 +334,68 @@ export default function Crop(props: CropProps) {
     document.removeEventListener('keydown', documentKeydownListener);
   }
 
-  function crop({x, y, width, height}: { x: number; y: number; width: number; height: number }) {
-    if(!cropChanged()) {
-      return;
-    }
+  function crop({x, y, width, height}: { x: number; y: number; width: number; height: number }): Promise<void> {
+    return new Promise<void>((resolve) => {
+      if(!cropChanged()) {
+        resolve();
+        return;
+      }
 
-    const layer = props.layerMaganer().getBaseCanvasLayer();
+      const layer = props.layerMaganer().getBaseCanvasLayer();
 
-    deinitCrop();
-    resetSliderPosition();
+      deinitCrop();
+      resetSliderPosition();
 
-    /**
-     * New canvas dimensions should respect aspect ratio and fit all available space except offset top
-     */
-    const canvasWrapper = document.getElementById('canvasWrapper') as HTMLElement;
-    const offsetTopBefore = Number.parseInt(canvasWrapper.style.marginTop);
-    const availabeHeight = canvasWrapper.parentElement!.offsetHeight - offsetTopBefore;
+      /**
+       * New canvas dimensions should respect aspect ratio and fit all available space except offset top
+      */
+      const canvasWrapper = document.getElementById('canvasWrapper') as HTMLElement;
+      const offsetTopBefore = Number.parseInt(canvasWrapper.style.marginTop);
+      const availabeHeight = canvasWrapper.parentElement!.offsetHeight - offsetTopBefore;
 
-    const maxWidht = canvasWrapper.parentElement!.offsetWidth - 100;
-    let newCanvasHeight = availabeHeight;
-    let newCanvasWidth = newCanvasHeight * width / height;
+      const maxWidht = canvasWrapper.parentElement!.offsetWidth - 100;
+      let newCanvasHeight = availabeHeight;
+      let newCanvasWidth = newCanvasHeight * width / height;
 
-    if(newCanvasWidth > maxWidht) {
-      newCanvasWidth = maxWidht;
-      newCanvasHeight = newCanvasWidth * height / width;
-    }
+      if(newCanvasWidth > maxWidht) {
+        newCanvasWidth = maxWidht;
+        newCanvasHeight = newCanvasWidth * height / width;
+      }
 
-    const offsetTopAfter = offsetTopBefore + (availabeHeight - newCanvasHeight) / 2;
+      const offsetTopAfter = offsetTopBefore + (availabeHeight - newCanvasHeight) / 2;
 
-    const animationDuration = 710;
+      const animationDuration = 600;
 
-    layer!.crop(x, y, width, height);
+      layer!.crop(x, y, width, height);
 
-    props.animateResizeCanvasWrapper(
-      newCanvasWidth,
-      newCanvasHeight,
-      offsetTopAfter,
-      [0.38, 0.45, 0.26, 1.06],
-      // [0.42, 0.16, 0.43, 1.15],
-      undefined,
-      newCanvasWidth * 0.96,
-      newCanvasHeight * 0.96,
-      offsetTopAfter,
-      animationDuration,
-      true // animate opacity
-    );
+      props.animateResizeCanvasWrapper(
+        newCanvasWidth,
+        newCanvasHeight,
+        offsetTopAfter,
+        [0.38, 0.45, 0.26, 1.06],
+        // [0.42, 0.16, 0.43, 1.15],
+        undefined,
+        newCanvasWidth * 0.96,
+        newCanvasHeight * 0.96,
+        offsetTopAfter,
+        animationDuration,
+        true // animate opacity
+      );
 
+      /**
+       * After rotation we will init it again
+       */
+      setTimeout(() => {
+        requestAnimationFrame(() => {
+          initCrop();
+          resolve();
+        });
+      }, animationDuration);
 
-    setTimeout(() => {
-      requestAnimationFrame(() => {
-        initCrop();
-      });
-    }, animationDuration);
+      setCropChanged(false);
 
-    setCropChanged(false);
-
-    layer.save();
+      layer.save();
+    });
   }
 
   let sliderDraggingInfo: SliderDraggingInfo | null = null;
@@ -447,7 +473,6 @@ export default function Crop(props: CropProps) {
     const normalizedX = (x + (sliderWidth / 2)) / sliderWidth;
     const angle = (normalizedX * range + minAngle) * -1;
 
-    // console.log(`Angle: ${angle.toFixed(2)}°`);
     const angleRounded = Math.round(angle);
     setAngle(angleRounded);
     rotateImage(angleRounded);
