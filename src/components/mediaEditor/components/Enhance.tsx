@@ -2,6 +2,7 @@ import type {Accessor} from 'solid-js';
 import {For, createSignal, onCleanup, onMount} from 'solid-js';
 import type {CanvasLayer, useCanvasLayers} from '../services/useCanvasLayers';
 import {RangeSelectorTsx} from '../../rangeSelectorTsx';
+import ApplyFilterCommand from '../services/commands/ApplyFilterCommand';
 
 interface EnhanceProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
@@ -78,6 +79,16 @@ function Enhance(props: EnhanceProps) {
     layer.applyFilter(filterName, value);
   };
 
+  let isBatching = false;
+
+  function startBatchIfNeeded() {
+    if(!isBatching) {
+      console.log('startBatch')
+      props.layerMaganer().commands.startBatch();
+      isBatching = true;
+    }
+  }
+
   return (
     <>
       <div class="enhance">
@@ -104,7 +115,31 @@ function Enhance(props: EnhanceProps) {
                   max,
                   zeroCentered: min < 0,
                   onScrub(value) {
-                    handleFilterChange(value, effect.toString() as keyof CanvasLayer['state']['filters']);
+                    // handleFilterChange(value, effect.toString() as keyof CanvasLayer['state']['filters']);
+
+                    startBatchIfNeeded();
+
+                    const signalSetter = effects.find(([e]) => e === effect)?.[4];
+
+                    props.layerMaganer().commands.execute(
+                      new ApplyFilterCommand(
+                        props.layerMaganer().getBaseCanvasLayer(),
+                        effect as keyof CanvasLayer['state']['filters'],
+                        value,
+                        () => {
+                          signalSetter(value);
+                        })
+                    );
+                  },
+                  onMouseDown() {
+                    startBatchIfNeeded();;
+                    props.layerMaganer().commands.startBatch();
+                  },
+                  onMouseUp() {
+                    if(isBatching) {
+                      props.layerMaganer().commands.endBatch();
+                      isBatching = false;
+                    }
                   }
                 }) }
               </div>

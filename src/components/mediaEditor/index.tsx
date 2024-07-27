@@ -40,6 +40,7 @@ import canvasToFile from '../../helpers/canvas/canvasToFile';
  * @todo i18n
  * @todo wrong shape on rotate text
  * @todo long horizontal image shrinks layout
+ * @todo use passive event listeners where possible
  *
  */
 function MediaEditor(params: {
@@ -52,6 +53,8 @@ function MediaEditor(params: {
   const [originalImage, setOriginalImage] = createSignal<HTMLImageElement>();
   const [layerManager, setLayerManager] = createSignal<ReturnType<typeof useCanvasLayers>>();
   const [tab, setTab] = createSignal<number>(0);
+  const [canUndo, setCanUndo] = createSignal(false);
+  const [canRedo, setCanRedo] = createSignal(false);
 
   /**
    * This element holds the layer system
@@ -213,7 +216,11 @@ function MediaEditor(params: {
     setOriginalImage(image);
 
     const layerManager = useCanvasLayers({
-      wrapperEl: document.getElementById('canvasWrapper') as HTMLElement
+      wrapperEl: document.getElementById('canvasWrapper') as HTMLElement,
+      onHistoryChange: (canUndo: boolean, canRedo: boolean) => {
+        setCanUndo(canUndo);
+        setCanRedo(canRedo);
+      }
     });
 
     setLayerManager(layerManager);
@@ -323,11 +330,16 @@ function MediaEditor(params: {
                 Edit
               </div>
               <div class="navbar__undo">
-                <div class="navbar__undo-undo">
+                <div
+                  class="navbar__undo-undo"
+                >
                   {
                     ButtonIconTsx({
                       icon: 'undo',
-                      onClick: () => {}
+                      onClick: () => {
+                        layerManager()?.commands.undo();
+                      },
+                      disabled: !canUndo()
                     })
                   }
                 </div>
@@ -335,7 +347,10 @@ function MediaEditor(params: {
                   {
                     ButtonIconTsx({
                       icon: 'redo',
-                      onClick: () => {}
+                      onClick: () => {
+                        layerManager()?.commands.redo();
+                      },
+                      disabled: !canRedo()
                     })
                   }
                 </div>

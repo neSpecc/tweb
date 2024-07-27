@@ -1,10 +1,26 @@
+import {copyImageData} from '../../../helpers/canvas/copyImageData';
 import PromiseQueue from '../utils/promise-queue';
 import {resizeImageData} from '../utils/resizeImage';
+import {Command} from './commands/Command';
 import {type DraggableBox, type DraggableBoxCreationAttributes, useDraggableBox} from './useDraggableBox';
 import {type CanvasFilters, useFilters} from './useFilters';
+import CommandManager from './CommandManager';
+import SaveLayerCommand from './commands/SaveLayerCommand';
 
 interface UseCanvasLayersParams {
   wrapperEl: HTMLElement;
+  onHistoryChange: (canUndo: boolean, canRedo: boolean) => void;
+}
+
+export interface CanvasLayerState {
+  rotation: number;
+  crop: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  filters: CanvasFilters;
 }
 
 export interface LayerBase {
@@ -19,17 +35,7 @@ export interface CanvasLayer extends LayerBase {
   originalImageOffscreenCanvas: OffscreenCanvas;
   originalImageOffscreenContext: OffscreenCanvasRenderingContext2D;
   imageData: ImageData;
-  imageDataWithoutFilters: ImageData;
-  state: {
-    rotation: number;
-    crop: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    };
-    filters: CanvasFilters;
-  };
+  state: CanvasLayerState;
   save: (withoutFilters?: boolean) => void;
   rotate: (angle: number) => void;
   rotate90: () => void;
@@ -38,6 +44,7 @@ export interface CanvasLayer extends LayerBase {
   restoreState: () => void;
   applyFilter: (filterName: keyof CanvasFilters, value: number) => void;
   sync: () => void;
+  setImageData: (imageData: ImageData) => void;
 }
 
 export interface DivLayer extends LayerBase {
@@ -117,18 +124,6 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
 
     layer.visibleCanvas.width = newWidth;
     layer.visibleCanvas.height = newHeight;
-
-    syncVisibleCanvas(layer);
-  }
-
-  function drawWithoutFilters(layer: CanvasLayer): void {
-    // restoreState(layer); ???
-
-    if(!layer.imageDataWithoutFilters) {
-      throw new Error('No image data available for drawing without filters');
-    }
-
-    layer.originalImageOffscreenContext.putImageData(layer.imageDataWithoutFilters, 0, 0);
 
     syncVisibleCanvas(layer);
   }
@@ -214,17 +209,13 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     syncVisibleCanvas(layer);
   }
 
-  function saveLayer(layer: CanvasLayer, withoutFilters = false, newWidth?: number, newHeight?: number): void {
+  function saveLayer(layer: CanvasLayer): void {
     const canvas = layer.originalImageOffscreenCanvas;
     const context = layer.originalImageOffscreenContext;
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
-    if(withoutFilters) {
-      layer.imageDataWithoutFilters = imageData;
-      return;
-    }
-
-    layer.imageData = imageData;
+    // layer.imageData = imageData;
+    commands.execute(new SaveLayerCommand(layer, imageData));
   }
 
   function flipCanvasLayerContent(layer: CanvasLayer): void {
@@ -330,14 +321,6 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     }
   }
 
-  function copyImageData(imageData: ImageData): ImageData {
-    const copy = new ImageData(imageData.width, imageData.height);
-
-    copy.data.set(imageData.data);
-
-    return copy;
-  }
-
   function applyCanvasFilter(layer: CanvasLayer, filterName: keyof CanvasFilters, value: number): void {
     const filtersToAdd = Object.fromEntries(Object.entries(layer.state.filters).filter(([_name, value]) => {
       return value !== 0;
@@ -360,15 +343,13 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     const {
       visibleCanvas,
       visibleCanvasContext,
-      originalImageOffscreenCanvas
+      originalImageOffscreenCanvas,
+      originalImageOffscreenContext
     } = layer;
 
     const scale = Math.min(visibleCanvas.width / originalImageOffscreenCanvas.width, visibleCanvas.height / originalImageOffscreenCanvas.height);
     const scaledWidth = originalImageOffscreenCanvas.width * scale;
     const scaledHeight = originalImageOffscreenCanvas.height * scale;
-
-    // visibleCanvas.width = scaledWidth;
-    // visibleCanvas.height = scaledHeight;
 
     visibleCanvasContext.clearRect(0, 0, visibleCanvas.width, visibleCanvas.height);
     visibleCanvasContext.drawImage(originalImageOffscreenCanvas, 0, 0, originalImageOffscreenCanvas.width, originalImageOffscreenCanvas.height, 0, 0, scaledWidth, scaledHeight);
@@ -406,7 +387,6 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
 
     const layer: CanvasLayer = {
       imageData,
-      imageDataWithoutFilters: imageData,
       visibleCanvas,
       visibleCanvasContext,
       originalImageOffscreenCanvas,
@@ -437,8 +417,8 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
       remove: (): void => {
         removeCanvasLayer(layer);
       },
-      save: (withoutFilters: boolean = false): void => {
-        saveLayer(layer, withoutFilters);
+      save: (): void => {
+        saveLayer(layer);
       },
       rotate: (angle: number): void => {
         rotateCanvasLayerContent(layer, angle);
@@ -460,19 +440,16 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
       },
       sync: (): void => {
         syncVisibleCanvas(layer);
+      },
+      setImageData: (imageData: ImageData): void => {
+        layer.originalImageOffscreenContext.putImageData(imageData, 0, 0);
+        syncVisibleCanvas(layer);
       }
-      // initDrawing: (): void => {
-
-      // }
     };
 
     layers.add(layer);
 
     syncVisibleCanvas(layer);
-
-    layer.save();
-    layer.save(true);
-    drawWithoutFilters(layer);
 
     return layer;
   }
@@ -680,6 +657,8 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     });
 
     layers.clear();
+
+    document.removeEventListener('keydown', keydownHandler);
   }
 
   /**
@@ -748,6 +727,52 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     return stickersLayer;
   }
 
+  const commandManager = new CommandManager();
+
+  const commands = {
+    execute(command: Command) {
+      commandManager.executeCommand(command);
+      onAfterHistoryChange();
+    },
+    startBatch() {
+      commandManager.startBatch();
+      onAfterHistoryChange();
+    },
+    endBatch() {
+      commandManager.endBatch();
+      onAfterHistoryChange();
+    },
+    undo() {
+      commandManager.undo();
+      onAfterHistoryChange();
+    },
+    redo() {
+      commandManager.redo();
+      onAfterHistoryChange();
+    }
+  };
+
+  function onAfterHistoryChange() {
+    const canUndo = commandManager.canUndo();
+    const canRedo = commandManager.canRedo();
+
+    params?.onHistoryChange(canUndo, canRedo);
+  }
+
+  const keydownHandler = (event: KeyboardEvent) => {
+    if(event.metaKey || event.ctrlKey) {
+      if(event.key === 'z') {
+        commands.undo();
+      }
+      else if(event.key === 'y') {
+        event.preventDefault();
+        commands.redo();
+      }
+    }
+  };
+
+  document.addEventListener('keydown', keydownHandler);
+
   return {
     createCanvasLayer,
     createDivLayer,
@@ -756,6 +781,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     getBaseCanvasLayer,
     getTextLayer,
     getStickersLayer,
-    exportLayers
+    exportLayers,
+    commands
   };
 }
