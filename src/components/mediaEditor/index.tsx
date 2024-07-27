@@ -21,7 +21,6 @@ import canvasToFile from '../../helpers/canvas/canvasToFile';
  * Now working
  *
  * @todo add undo/redo
- * @todo saving rotated texts
  * @todo stickers search, tabbing
  *
  * Critical bugs
@@ -39,6 +38,8 @@ import canvasToFile from '../../helpers/canvas/canvasToFile';
  * @todo rotate crop ratio icons
  * @todo snell roundhand font lays out on left side incorrectly
  * @todo i18n
+ * @todo wrong shape on rotate text
+ * @todo long horizontal image shrinks layout
  *
  */
 function MediaEditor(params: {

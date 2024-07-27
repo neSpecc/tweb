@@ -1,7 +1,15 @@
-interface TextBoxMeta {
-  style: string;
-  alignment: string;
+export interface TextBoxMeta {
+  fontSize: number;
+  originalWidth: number;
+  originalPaddingBlock: number;
+  originalPaddingInline: number;
+  style: 'regular' | 'stroked' | 'backgrounded';
+  alignment: 'left' | 'center' | 'right';
   color: string;
+  font: string;
+  bgPadX: number;
+  bgPadY: number;
+  bgRadius: number;
 }
 
 export interface DraggableBox {
@@ -993,7 +1001,99 @@ export function useDraggableBox() {
     });
   }
 
-  async function exportBoxToCanvas(box: DraggableBox, scaleFactor: number = 1): Promise<HTMLCanvasElement> {
+  async function exportTextBox(box: DraggableBox, scaleFactor: number = 1): Promise<HTMLCanvasElement> {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if(!ctx) {
+      console.error('Failed to get canvas context');
+      return canvas;
+    }
+
+    canvas.width = (box.position.width + box.meta.bgPadX * 2) * scaleFactor;
+    canvas.height = (box.position.height + box.meta.bgPadY * 2) * scaleFactor;
+
+    // ctx.fillStyle = 'rgba(255, 255, 255, .2)';
+    // ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if(box.meta.style === 'backgrounded') {
+      const boxBackgroundShape = box.el.querySelector('svg') as SVGElement;
+      const shape = boxBackgroundShape.cloneNode(true) as SVGElement;
+
+      shape.removeAttribute('style');
+      const svgString = new XMLSerializer().serializeToString(shape);
+      const img = await loadSvgImage(`data:image/svg+xml,${encodeURIComponent(svgString)}`);
+
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    }
+
+    const boxTextLines = Array.from(box.el.querySelectorAll('.text-box__line')) as HTMLDivElement[];
+
+    const {
+      font,
+      style
+    } = box.meta;
+
+    let color = box.meta.color;
+    const fontSize = box.meta.fontSize * scaleFactor;
+
+    boxTextLines.forEach((line) => {
+      const text = line.textContent;
+      if(!text) {
+        return;
+      }
+
+      const lineStyle = window.getComputedStyle(line);
+      const fontWeight = lineStyle.fontWeight;
+
+      const padX = box.meta.bgPadX * scaleFactor;
+      const padY = box.meta.bgPadY * scaleFactor;
+
+      const lineRect = line.getBoundingClientRect();
+      const lineTop = Math.round(line.offsetTop * scaleFactor + padY);
+      const lineLeft = Math.round(line.offsetLeft * scaleFactor + padX);
+
+      // ctx.fillStyle = 'rgba(255, 255, 255, .4)';
+      // ctx.fillRect(
+      //   lineLeft,
+      //   lineTop,
+      //   lineRect.width * scaleFactor,
+      //   lineRect.height * scaleFactor
+      // );
+
+      ctx.font = `${fontWeight} ${fontSize}px ${font}`;
+
+      if(style === 'backgrounded') {
+        color = 'white';
+      }
+      ctx.fillStyle = color;
+
+      // ctx.textRendering = 'optimizeLegibility';
+
+      const textMetrics = ctx.measureText(text);
+      const textHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
+      const lineHeight = lineStyle.lineHeight !== 'normal' ? Number.parseFloat(lineStyle.lineHeight) : fontSize;
+      const baseLine = Math.round(lineTop + (lineHeight * scaleFactor - textHeight) / 2 + textMetrics.actualBoundingBoxAscent);
+
+      if(style === 'stroked') {
+        const textBox = box.el.querySelector('.text-box') as HTMLElement;
+        const boxStyle = window.getComputedStyle(textBox);
+        const strokeWidth = Number.parseFloat(boxStyle.getPropertyValue('--stroke-width')) * scaleFactor;
+
+        ctx.strokeStyle = '#000';
+
+        ctx.lineWidth = strokeWidth * 2;
+        ctx.strokeText(text, lineLeft, baseLine);
+      }
+
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(text, lineLeft, baseLine);
+    });
+
+    return canvas;
+  }
+
+  function exportSticker(box: DraggableBox, scaleFactor: number = 1): HTMLCanvasElement {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
@@ -1008,120 +1108,49 @@ export function useDraggableBox() {
     // ctx.fillStyle = 'rgba(255, 255, 255, .2)';
     // ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const boxContent = box.el.querySelector(`.${CSS.draggableBoxContent}`) as HTMLElement;
-    const boxText = box.el.querySelector('.text-box') as HTMLElement;
     const boxSticker = box.el.querySelector('.super-sticker') as HTMLElement;
+    const stickerCanvas = boxSticker.querySelector('canvas');
+    const stickerVideo = boxSticker.querySelector('video');
+    const stickerImg = boxSticker.querySelector('img');
+    const originalWidth = Number.parseInt(boxSticker.dataset.w);
+    const originalHeidht = Number.parseInt(boxSticker.dataset.h);
 
-    if(boxText) {
-      const computedStyles = window.getComputedStyle(boxText);
-      const boxPaddingTop = computedStyles.paddingTop ? Number.parseInt(computedStyles.paddingTop) * scaleFactor : 0;
-      const boxPaddingLeft = computedStyles.paddingLeft ? Number.parseInt(computedStyles.paddingLeft) * scaleFactor : 0;
-      const boxTextLines = Array.from(boxContent.querySelectorAll('.text-box__line')) as HTMLDivElement[];
+    if(stickerCanvas) {
+      ctx.drawImage(stickerCanvas, 0, 0, box.position.width * scaleFactor, box.position.height * scaleFactor);
+    }
+    else if(stickerImg || stickerVideo) {
+      let imageWidth = box.position.width * scaleFactor;
+      let imageHeight = 0;
+      const ratio = originalWidth / originalHeidht;
 
-      const fontSize = computedStyles.fontSize ? Number.parseInt(computedStyles.fontSize) * scaleFactor : 16 * scaleFactor;
-      const fontFamily = computedStyles.fontFamily || 'serif';
-      const color = computedStyles.color || 'black';
-      const fontWeight = computedStyles.fontWeight || 'normal';
-
-      const linePaddingTop = 2 * scaleFactor;
-      const linePaddingLeft = 6 * scaleFactor;
-      const textLineHeight = computedStyles.lineHeight ? Number.parseInt(computedStyles.lineHeight) * scaleFactor : 20 * scaleFactor;
-      const textLineHeightSpaces = (textLineHeight - fontSize) / 2;
-
-      const boxBackgroundShape = box.el.querySelector('svg') as SVGElement;
-
-      const alignment = box.meta.alignment;
-      const style = box.meta.style;
-
-      if(boxBackgroundShape) {
-        const svgString = new XMLSerializer().serializeToString(boxBackgroundShape);
-
-        const img = await loadSvgImage(`data:image/svg+xml,${encodeURIComponent(svgString)}`);
-
-        // 0 ??
-        ctx.drawImage(img, 0, boxPaddingTop / scaleFactor, canvas.width, canvas.height);
+      if(originalWidth > originalHeidht) {
+        imageHeight = imageWidth / ratio;
+      }
+      else {
+        imageHeight = box.position.width * scaleFactor;
+        imageWidth = imageHeight / ratio;
       }
 
-      // let yOffset = boxPaddingTop + fontSize * 0.15;
+      const topOffset = (box.position.height * scaleFactor - imageHeight) / 2;
+      const leftOffset = (box.position.width * scaleFactor - imageWidth) / 2;
 
-      boxTextLines.forEach((line) => {
-        const text = line.textContent;
-        if(!text) {
-          return;
-        }
-
-        const lineOffsetFromBox = line.offsetTop * scaleFactor;
-
-        ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
-        ctx.fillStyle = color;
-
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 1 * scaleFactor;
-
-        const textMetrics = ctx.measureText(text);
-        const textHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
-        console.log('textHeight', textHeight);
-
-        // yOffset += lineHeight;
-
-        // const uppercaseLettersPattern = /\p{Lu}/u;
-
-        // if(uppercaseLettersPattern.test(text)) {
-        //   yOffset -= fontSize * 0.09;
-        // }
-
-        const ascentOverride = 0.9;
-
-        let textLeftOffset = boxPaddingLeft + linePaddingLeft;
-        const textTopOffset = lineOffsetFromBox + linePaddingTop + textHeight * ascentOverride;
-
-        if(alignment === 'right') {
-          textLeftOffset = canvas.width - boxPaddingLeft - linePaddingLeft - textMetrics.width;
-        }
-        else if(alignment === 'center') {
-          textLeftOffset = (canvas.width - textMetrics.width) / 2;
-        }
-
-        if(style === 'stroked') {
-          ctx.strokeStyle = '#000';
-          ctx.lineWidth = 5 * scaleFactor;
-          ctx.strokeText(text, boxPaddingLeft + linePaddingLeft, textTopOffset);
-        }
-
-        ctx.fillText(text, textLeftOffset, textTopOffset);
-
-        // yOffset += linePaddingTop * 2 + fontSize * 0.3;
-      });
-    } else if(boxSticker) {
-      const stickerCanvas = boxSticker.querySelector('canvas');
-      const stickerVideo = boxSticker.querySelector('video');
-      const stickerImg = boxSticker.querySelector('img');
-      const originalWidth = Number.parseInt(boxSticker.dataset.w);
-      const originalHeidht = Number.parseInt(boxSticker.dataset.h);
-
-      if(stickerCanvas) {
-        ctx.drawImage(stickerCanvas, 0, 0, box.position.width * scaleFactor, box.position.height * scaleFactor)
-      } else if(stickerImg || stickerVideo) {
-        let imageWidth = box.position.width * scaleFactor;
-        let imageHeight = 0;
-        const ratio = originalWidth / originalHeidht;
-
-        if(originalWidth > originalHeidht) {
-          imageHeight = imageWidth / ratio;
-        } else {
-          imageHeight = box.position.width * scaleFactor
-          imageWidth = imageHeight / ratio;
-        }
-
-        const topOffset = (box.position.height * scaleFactor - imageHeight) / 2;
-        const leftOffset = (box.position.width * scaleFactor - imageWidth) / 2;
-
-        ctx.drawImage(stickerImg ?? stickerVideo, leftOffset, topOffset, imageWidth, imageHeight)
-      }
+      ctx.drawImage(stickerImg ?? stickerVideo, leftOffset, topOffset, imageWidth, imageHeight);
     }
 
     return canvas;
   }
+
+  async function exportBoxToCanvas(box: DraggableBox, scaleFactor: number = 1): Promise<HTMLCanvasElement> {
+    const boxText = box.el.querySelector('.text-box') as HTMLElement;
+    const isTextBox = boxText !== null;
+
+    if(isTextBox) {
+      return exportTextBox(box, scaleFactor);
+    } else {
+      return exportSticker(box, scaleFactor);
+    }
+  }
+
 
   function create(attributes?: DraggableBoxCreationAttributes): DraggableBox {
     const el = document.createElement('div');
@@ -1166,10 +1195,18 @@ export function useDraggableBox() {
       meta: {
         color: '#fff',
         alignment: 'left',
-        style: 'regular'
+        style: 'regular',
+        font: 'Roboto',
+        bgPadX: 0,
+        bgPadY: 0,
+        bgRadius: 0,
+        fontSize: 16,
+        originalWidth: 0,
+        originalPaddingBlock: 0,
+        originalPaddingInline: 0
       },
-      setMeta: (key: keyof TextBoxMeta, value: string) => {
-        box.meta[key] = value;
+      setMeta: <K extends keyof TextBoxMeta>(key: K, value: string) => {
+        box.meta[key] = value as TextBoxMeta[typeof key];
       },
       moveTo: (x: number, y: number) => moveTo(box, x, y),
       insert: (parent: HTMLElement, x: number, y: number) => insert(box, parent, x, y),

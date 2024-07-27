@@ -532,8 +532,35 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
       queue.add(async() => {
         const boxCanvas = await box.export(scaleFactor * scaleY);
         const {position} = box;
+        const {x, y, rotationAngle} = position;
 
-        highResContext.drawImage(boxCanvas, position.x * scaleX, position.y * scaleY, boxCanvas.width / scaleFactor, boxCanvas.height / scaleFactor);
+        /**
+         * Rotate the box canvas to respect the rotation angle
+         */
+        const sin = Math.sin(rotationAngle * Math.PI / 180);
+        const cos = Math.cos(rotationAngle * Math.PI / 180);
+        const newWidth = Math.abs(boxCanvas.width * cos) + Math.abs(boxCanvas.height * sin);
+        const newHeight = Math.abs(boxCanvas.width * sin) + Math.abs(boxCanvas.height * cos);
+        const offScreenCanvas = document.createElement('canvas');
+        const offScreenContext = offScreenCanvas.getContext('2d');
+
+        offScreenCanvas.width = newWidth;
+        offScreenCanvas.height = newHeight;
+
+        offScreenContext.translate(newWidth / 2, newHeight / 2);
+        offScreenContext.rotate(rotationAngle * Math.PI / 180);
+        offScreenContext.drawImage(boxCanvas, -boxCanvas.width / 2, -boxCanvas.height / 2);
+
+        const offsetX = (newWidth - boxCanvas.width) / 2;
+        const offsetY = (newHeight - boxCanvas.height) / 2;
+
+        highResContext.drawImage(
+          offScreenCanvas,
+          (position.x * scaleX) - offsetX / scaleFactor,
+          (position.y * scaleY) - offsetY / scaleFactor,
+          newWidth / scaleFactor,
+          newHeight / scaleFactor
+        );
       });
     });
 

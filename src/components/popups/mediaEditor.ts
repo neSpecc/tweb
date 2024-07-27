@@ -33,8 +33,8 @@ export default class PopupMediaEditor extends PopupElement {
     }
 
     const onSave = (file: File) => {
-      this.hide();
       params.onSave(file);
+      this.forceHide();
     }
 
     this.body.append(MediaEditor({

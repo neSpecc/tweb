@@ -1,6 +1,6 @@
 import {isColorLight} from '../../../helpers/color';
 import type {DivLayer} from './useCanvasLayers';
-import type {DraggableBox} from './useDraggableBox';
+import type {DraggableBox, TextBoxMeta} from './useDraggableBox';
 
 interface UseTextToolParams {
   layer: DivLayer;
@@ -10,22 +10,11 @@ interface UseTextToolParams {
 type TextAlignment = 'left' | 'center' | 'right';
 type TextStyle = 'regular' | 'stroked' | 'backgrounded';
 
-interface TextareaState {
-  fontSize: number;
-  originalWidth: number;
-  originalPaddingBlock: number;
-  originalPaddingInline: number;
-  style: TextStyle;
-  alignment: TextAlignment;
-  color: string;
-  font: string;
-}
-
 export function useTextTool(params: UseTextToolParams) {
   /**
    * Actual state of each text-box
    */
-  const state = new WeakMap<DraggableBox, TextareaState>();
+  const state = new WeakMap<DraggableBox, TextBoxMeta>();
 
   const preset: {
     fontSize: number;
@@ -53,21 +42,17 @@ export function useTextTool(params: UseTextToolParams) {
     textBoxRightAligned: 'text-box--right-aligned'
   };
 
-  function updateBoxParam(box: DraggableBox, newParams: Partial<TextareaState>): void {
-    state.set(box, {
-      ...state.get(box),
+  function updateBoxParam(box: DraggableBox, newParams: Partial<TextBoxMeta>): void {
+    const newState = {
+      ...state.get(box) as TextBoxMeta ?? {},
       ...newParams
-    });
+    } as TextBoxMeta;
+    state.set(box, newState);
 
-    const statesToStoreInBoxMeta = ['style', 'alignment', 'color'] as (keyof Pick<TextareaState, 'style' | 'alignment' | 'color'>)[];
-
-    for(const key of statesToStoreInBoxMeta) {
-      const value = newParams[key];
-
-      if(value) {
-        box.meta[key] = value;
-      }
-    }
+    box.meta = {
+      ...box.meta,
+      ...newParams
+    };
   }
 
   function onLayerClick(event: MouseEvent) {
@@ -136,7 +121,7 @@ export function useTextTool(params: UseTextToolParams) {
   }
 
   function drawSvgShape(box: DraggableBox) {
-    const boxState = state.get(box) as TextareaState;
+    const boxState = state.get(box) as TextBoxMeta;
 
     if(boxState.style !== 'backgrounded') {
       return;
@@ -409,7 +394,7 @@ export function useTextTool(params: UseTextToolParams) {
        * We need to adjust font size based on the width of the box
        */
       onResize: (newWidth) => {
-        const startState = state.get(box) as TextareaState;
+        const startState = state.get(box) as TextBoxMeta;
         const scaleRatio = newWidth / startState.originalWidth;
         const newFontSize = startState.fontSize * scaleRatio;
 
@@ -531,7 +516,7 @@ export function useTextTool(params: UseTextToolParams) {
   }
 
   function toggleBackgrounded(box: DraggableBox, newState = true): void {
-    const boxState = state.get(box) as TextareaState;
+    const boxState = state.get(box) as TextBoxMeta;
     const textarea = box.el.querySelector(`.${CSS.textBox}`) as HTMLTextAreaElement;
 
     if(!textarea) {
@@ -632,7 +617,7 @@ export function useTextTool(params: UseTextToolParams) {
 
   function setColor(color: string): void {
     const box = params.layer.getActiveBox();
-    const boxState = state.get(box) as TextareaState;
+    const boxState = state.get(box) as TextBoxMeta;
     const textarea = box?.el.querySelector(`.${CSS.textBox}`) as HTMLTextAreaElement;
 
     if(box === null || !textarea) {
@@ -650,6 +635,7 @@ export function useTextTool(params: UseTextToolParams) {
 
     updateBoxParam(box, {
       color
+      // save second color
     });
 
     drawSvgShape(box);

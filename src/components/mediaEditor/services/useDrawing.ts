@@ -210,8 +210,6 @@ export function useDrawing(params: UseDrawingParams) {
     offscreenContext.lineWidth = drawingOptions.brushSize;
     offscreenContext.lineCap = 'round';
 
-    console.log(`Global Composite Operation: ${offscreenContext.globalCompositeOperation}`);
-
     offscreenContext.lineTo(x, y);
     offscreenContext.stroke();
     offscreenContext.beginPath();
