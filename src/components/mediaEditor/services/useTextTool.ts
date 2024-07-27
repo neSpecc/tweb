@@ -149,6 +149,9 @@ export function useTextTool(params: UseTextToolParams) {
       existingSvg.remove();
     }
 
+    // const existingDots = box.el.querySelectorAll('.dot');
+    // existingDots.forEach(dot => dot.remove());
+
     const textBoxLines = textarea.querySelectorAll('.text-box__line');
     if(textBoxLines.length === 0) {
       console.error('No elements found with class .text-box__line');
@@ -163,22 +166,49 @@ export function useTextTool(params: UseTextToolParams) {
 
     const textareaRect = textarea.getBoundingClientRect();
 
-    // Calculate positions and dimensions for all lines first to minimize layout thrashing
+    const padX = boxState.fontSize / 4;
+    const padY = boxState.fontSize / 8;
+    const radius = boxState.fontSize / 2.2;
+    // const radius = boxState.fontSize > 30 ? 16 : boxState.fontSize / 1.5;
+    // const radius = 16;
+
+    // function dot(x: number, y: number, color = 'white'): string {
+    //   const dot = document.createElement('div');
+    //   dot.classList.add('dot');
+    //   dot.style.position = 'absolute';
+    //   dot.style.width = '4px';
+    //   dot.style.height = '4px';
+    //   dot.style.borderRadius = '5px';
+    //   dot.style.left = `${x}px`;
+    //   dot.style.top = `${y}px`;
+
+    //   dot.style.backgroundColor = color;
+    //   dot.style.transform = `translate(-50%, -50%)`;
+    //   // dot.style.opacity = '0.2';
+
+    //   box.append(dot);
+
+    //   return '';
+    // }
+
     const lines = Array.from(textBoxLines).map((line) => {
       const rect = line.getBoundingClientRect();
       const left = rect.left - textareaRect.left;
       const top = rect.top - textareaRect.top;
       const right = left + rect.width;
       const bottom = top + rect.height;
+      const width = rect.width;
+      const height = rect.height;
 
       return {
         left,
         top,
         right,
-        bottom
+        bottom,
+        width,
+        height
       };
     });
-    const radius = boxState.fontSize > 30 ? 16 : boxState.fontSize / 1.5;
 
     function traverseFromTopToBottom(lineIndex: number): string {
       let result = '';
@@ -191,26 +221,48 @@ export function useTextTool(params: UseTextToolParams) {
 
       const {right, bottom} = line;
 
-      result += `L${line.right},${line.bottom - radius}`;
+      const rightPadded = right + padX;
+      const bottomPadded = bottom + padY;
+
+      if(next && next.right > right) {
+        result += `L${rightPadded},${next.top - padY - radius}`;
+        // dot(rightPadded, next.top - padY - radius);
+      }
+      else {
+        result += `L${rightPadded},${bottomPadded - radius}`;
+        // dot(rightPadded, bottomPadded - radius);
+      }
 
       if(next) {
-        const distance = Math.abs(next.right - right);
+        const distance = Math.abs(next.right + padX - rightPadded);
         const radiusAdjusted = Math.min(radius, distance / 2);
 
-        console.log('distance', distance, 'radiusAdjusted', radiusAdjusted, radius);
-
         if(right < next.right) { // If the next line is wider
-          result += `Q${right},${bottom} ${right + radiusAdjusted},${next.top}`; // Bottom-right corner rounded
-          result += `L${next.right - radiusAdjusted},${next.top}`;
-          result += `Q${next.right},${next.top} ${next.right},${next.top + radiusAdjusted}`;
+          result += `Q${rightPadded},${next.top - padY} ${rightPadded + radiusAdjusted},${next.top - padY}`; // Bottom-right corner rounded
+          // dot(rightPadded, next.top - padY, 'green');
+          // dot(rightPadded + radiusAdjusted, next.top - padY);
+
+          result += `L${next.right + padX - radiusAdjusted},${next.top - padY}`;
+          // dot(next.right + padX - radiusAdjusted, next.top - padY);
+          result += `Q${next.right + padX},${next.top - padY} ${next.right + padX},${next.top - padY + radiusAdjusted}`;
+          // dot(next.right + padX, next.top - padY);
+          // dot(next.right + padX, next.top - padY + radiusAdjusted);
         }
         else if(right > next.right) {
-          result += `Q${right},${bottom} ${right - radiusAdjusted},${bottom}`; // Bottom-right corner rounded
-          result += `L${next.right + radiusAdjusted},${bottom}`;
-          result += `Q${next.right},${bottom} ${next.right},${next.top + radiusAdjusted}`;
+          result += `Q${rightPadded},${bottomPadded} ${rightPadded - radiusAdjusted},${bottomPadded}`; // Bottom-right corner rounded
+          // dot(rightPadded, bottomPadded);
+          // dot(rightPadded - radiusAdjusted, bottomPadded, 'orange');
+
+          result += `L${next.right + padX + radiusAdjusted},${bottomPadded}`;
+          // dot(next.right + padX + radiusAdjusted, bottomPadded);
+
+          result += `Q${next.right + padX},${bottomPadded} ${next.right + padX},${next.top + padY + radiusAdjusted}`;
+          // dot(next.right + padX, bottomPadded);
+          // dot(next.right + padX, next.top + padY + radiusAdjusted);
         }
         else { // right === next.right
-          result += `L${right},${bottom + radius}`;
+          result += `L${rightPadded},${next.top + padY}`;
+          // dot(rightPadded, next.top + padY);
         }
       }
 
@@ -228,23 +280,45 @@ export function useTextTool(params: UseTextToolParams) {
 
       const {left} = line;
 
-      result += `L${line.left},${line.top + radius}`;
-
       const distance = Math.abs(prev.left - left);
       const radiusAdjusted = Math.min(radius, distance / 2);
 
-      if(left > prev.left && left) {
-        result += `Q${line.left},${line.top} ${line.left - radiusAdjusted},${prev.bottom}`;
-        result += `L${prev.left + radiusAdjusted},${prev.bottom}`;
-        result += `Q${prev.left},${prev.bottom} ${prev.left},${prev.bottom - radiusAdjusted}`;
-      }
-      else if(left < prev.left) {
-        result += `Q${line.left},${line.top} ${line.left + radiusAdjusted},${prev.bottom}`;
-        result += `L${prev.left - radiusAdjusted},${prev.bottom}`;
-        result += `Q${prev.left},${prev.bottom} ${prev.left},${prev.bottom - radiusAdjusted}`;
+      if(prev.left < left) {
+        result += `L${left - padX},${prev.bottom + padY + radiusAdjusted}`;
+        // dot(left - padX, prev.bottom + padY + radiusAdjusted, 'black');
       }
       else {
-        result += `L${prev.left},${prev.bottom - radius}`;
+        result += `L${left - padX},${prev.bottom - padY + radiusAdjusted}`;
+        // dot(left - padX, prev.bottom - padY + radiusAdjusted, 'black');
+      }
+
+      if(left > prev.left && left) {
+        result += `Q${line.left - padX},${prev.bottom + padY} ${line.left - padX - radiusAdjusted},${prev.bottom + padY}`;
+        // dot(line.left - padX, prev.bottom + padY);
+        // dot(line.left - padX - radiusAdjusted, prev.bottom + padY, 'orange');
+
+        result += `L${prev.left - padX + radiusAdjusted},${prev.bottom + padY}`;
+        // dot(prev.left - padX + radiusAdjusted, prev.bottom + padY);
+
+        result += `Q${prev.left - padX},${prev.bottom + padY} ${prev.left - padX},${prev.bottom + padY - radiusAdjusted}`;
+        // dot(prev.left - padX, prev.bottom + padY, 'blue');
+        // dot(prev.left - padX, prev.bottom + padY - radiusAdjusted);
+      }
+      else if(left < prev.left) {
+        result += `Q${line.left - padX},${line.top - padY} ${line.left - padX + radiusAdjusted},${prev.bottom - padY}`;
+        // dot(line.left - padX, line.top - padY);
+        // dot(line.left - padX + radiusAdjusted, prev.bottom - padY);
+
+        result += `L${prev.left - padX - radiusAdjusted},${prev.bottom - padY}`;
+        // dot(prev.left - padX - radiusAdjusted, prev.bottom - padY);
+
+        result += `Q${prev.left - padX},${prev.bottom - padY} ${prev.left - padX},${prev.bottom - padY - radiusAdjusted}`;
+        // dot(prev.left - padX, prev.bottom - padY);
+        // dot(prev.left - padX, prev.bottom - padY - radiusAdjusted);
+      }
+      else {
+        result += `L${prev.left - padX},${prev.bottom - padY}`;
+        // dot(prev.left - padX, prev.bottom - padY, 'orange');
       }
 
       return result;
@@ -256,9 +330,13 @@ export function useTextTool(params: UseTextToolParams) {
     /**
      * Begin at top+radius and turn bottom to start traversing from top to bottom
      */
-    pathData += `M${firstLine.left + radius},${firstLine.top}`; // Move to the starting point with radius offset
-    pathData += `L${firstLine.right - radius},${firstLine.top}`;
-    pathData += `Q${firstLine.right},${firstLine.top} ${firstLine.right},${firstLine.top + radius}`; // Top-right corner rounded
+    // dot(firstLine.left + radius - padX, firstLine.top - padY);
+    pathData += `M${firstLine.left + radius - padX},${firstLine.top - padY}`; // Move to the starting point with radius offset
+    // dot(firstLine.right + padX - radius, firstLine.top - padY);
+    pathData += `L${firstLine.right + padX - radius},${firstLine.top - padY}`;
+    // dot(firstLine.right + padX, firstLine.top - padY);
+    // dot(firstLine.right + padX, firstLine.top - padY + radius);
+    pathData += `Q${firstLine.right + padX},${firstLine.top - padY} ${firstLine.right + padX},${firstLine.top - padY + radius}`; // Top-right corner rounded
 
     while(curIndex < lines.length) {
       pathData += traverseFromTopToBottom(curIndex);
@@ -271,9 +349,15 @@ export function useTextTool(params: UseTextToolParams) {
      * Now we're at the right bottom–radius point of the last block
      * Turn bottom left
      */
-    pathData += `Q${lastLine.right},${lastLine.bottom} ${lastLine.right - radius},${lastLine.bottom}`; // Bottom-right corner rounded
-    pathData += `L${lastLine.left + radius},${lastLine.bottom}`;
-    pathData += `Q${lastLine.left},${lastLine.bottom} ${lastLine.left},${lastLine.bottom - radius}`;
+    pathData += `Q${lastLine.right + padX},${lastLine.bottom + padY} ${lastLine.right + padX - radius},${lastLine.bottom + padY}`; // Bottom-right corner rounded
+    // dot(lastLine.right + padX, lastLine.bottom + padY, 'green');
+    // dot(lastLine.right + padX - radius, lastLine.bottom + padY, 'green');
+    pathData += `L${lastLine.left - padX + radius},${lastLine.bottom + padY}`;
+    // dot(lastLine.left - padX + radius, lastLine.bottom + padY);
+
+    pathData += `Q${lastLine.left - padX},${lastLine.bottom + padY} ${lastLine.left - padX},${lastLine.bottom + padY - radius}`;
+    // dot(lastLine.left - padX, lastLine.bottom + padY, 'blue');
+    // dot(lastLine.left - padX, lastLine.bottom + padY - radius, 'pink');
 
     curIndex = lines.length - 1;
 
@@ -282,20 +366,25 @@ export function useTextTool(params: UseTextToolParams) {
       curIndex--;
     }
 
-    pathData += `L${firstLine.left},${firstLine.top + radius}`;
-    pathData += `Q${firstLine.left},${firstLine.top} ${firstLine.left + radius},${firstLine.top}`;
+    pathData += `L${firstLine.left - padX},${firstLine.top - padY + radius}`;
+    // dot(firstLine.left - padX, firstLine.top - padY + radius);
+    pathData += `Q${firstLine.left - padX},${firstLine.top - padY} ${firstLine.left - padX + radius},${firstLine.top - padY}`;
+    // dot(firstLine.left - padX, firstLine.top - padY);
+    // dot(firstLine.left - padX + radius, firstLine.top - padY);
     pathData += `Z`;
 
     const path = document.createElementNS(svgNS, 'path');
     path.setAttribute('d', pathData);
     path.setAttribute('fill', bgColor);
+    path.setAttribute('transform', `translate(${padX}, ${padY})`);
+
     svg.appendChild(path);
 
-    const svgWidth = textarea.offsetWidth;
-    const svgHeight = textarea.offsetHeight;
-    svg.setAttribute('width', svgWidth.toString());
-    svg.setAttribute('height', svgHeight.toString());
-    svg.setAttribute('style', `position: absolute; left: 0; top: 0; pointer-events: none;`);
+    const svgWidth = textarea.offsetWidth + padX * 2;
+    const svgHeight = textarea.offsetHeight + padY * 2;
+    svg.setAttribute('width', `${svgWidth}px`);
+    svg.setAttribute('height', `${svgHeight}px`);
+    svg.setAttribute('style', `position: absolute; left: ${-padX}px; top: ${-padY}px; pointer-events: none;`);
 
     textarea.appendChild(svg);
   }
@@ -533,6 +622,12 @@ export function useTextTool(params: UseTextToolParams) {
 
     textarea.style.fontFamily = fontFamily;
     textarea.style.fontWeight = toBeBold.includes(fontFamily) ? 'bold' : 'normal';
+
+    updateBoxParam(box, {
+      font: fontFamily
+    });
+
+    drawSvgShape(box);
   }
 
   function setColor(color: string): void {

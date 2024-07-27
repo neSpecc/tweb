@@ -29,15 +29,13 @@ import canvasToFile from '../../helpers/canvas/canvasToFile';
  *
  * Working but not ideal
  *
- * @todo crop by enter
  * @todo delete active draggable box by delete (if caret is not set)
- * @todo increase border-radius of text along with scale up
  * @todo second rotate90 decreases width
  * @todo fix hightlighs and shadows filters
  * @todo fix erasing effect of the Blur Brush
- * @todo preselect text color is not working
  * @todo long text wrapping
- * @todo crop on Enter
+ * @todo text bold settings is not applied
+ * @todo don't confirm hiding on save
  *
  */
 function MediaEditor(params: {

@@ -256,14 +256,12 @@ export function useFilters() {
   function enhance(data: Uint8ClampedArray, enhanceValue: number, imageSize = {width: 0, height: 0}) {
     const intensity = 0.2;
     const contrastValue = enhanceValue * intensity * 0.5;
-    const brightnessValue = enhanceValue * intensity * 0.5;
-    const saturationValue = enhanceValue * intensity * 0.5;
-    const sharpenValue = enhanceValue * intensity * 0.5;
+    const brightnessValue = enhanceValue * intensity * 0.4;
+    const saturationValue = enhanceValue * intensity * 0.6;
 
     contrast(data, contrastValue);
     brightness(data, brightnessValue);
     saturation(data, saturationValue);
-    sharpen(data, sharpenValue, imageSize);
   }
 
   const filters: Record<string, Filter> = {
