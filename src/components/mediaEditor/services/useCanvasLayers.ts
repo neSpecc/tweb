@@ -7,6 +7,7 @@ import {type CanvasFilters, useFilters} from './useFilters';
 import CommandManager from './CommandManager';
 import SaveLayerCommand from './commands/SaveLayerCommand';
 import CropCommand from './commands/CropCommand';
+import RotateCanvasCommand from './commands/RotateCanvasCommand';
 
 interface UseCanvasLayersParams {
   wrapperEl: HTMLElement;
@@ -32,7 +33,7 @@ export interface CanvasLayer extends LayerBase {
   imageData: ImageData;
   state: CanvasLayerState;
   save: (withoutFilters?: boolean) => void;
-  rotate: (angle: number) => void;
+  rotate: (angle: number, uiReflector: (angle: number) => void) => void;
   rotate90: () => void;
   flip: () => void;
   crop: (params: CropParams) => void;
@@ -205,7 +206,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     syncVisibleCanvas(layer);
   }
 
-  function rotateCanvasLayerContent(layer: CanvasLayer, angle: number): void {
+  function rotateCanvasLayerContent(layer: CanvasLayer, angle: number, uiReflector: (angle: number) => void): void {
     const {
       originalImageOffscreenCanvas,
       originalImageOffscreenContext,
@@ -222,37 +223,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     const boundingHeight = width * absSin + height * absCos;
     const scale = Math.max(boundingWidth / width, boundingHeight / height);
 
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = width * scale;
-    tempCanvas.height = height * scale;
-    const tempContext = tempCanvas.getContext('2d');
-
-    if(!tempContext) {
-      throw new Error('Could not get temporary context');
-    }
-
-    tempContext.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
-
-    const resizedCanvas = resizeImageData(imageData, tempCanvas.width, tempCanvas.height);
-
-    tempContext.save();
-    tempContext.translate(tempCanvas.width / 2, tempCanvas.height / 2);
-    tempContext.rotate(radians);
-    tempContext.translate(-tempCanvas.width / 2, -tempCanvas.height / 2);
-    tempContext.drawImage(resizedCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
-    tempContext.restore();
-
-    originalImageOffscreenContext.drawImage(
-      tempCanvas,
-      (width - tempCanvas.width) / 2,
-      (height - tempCanvas.height) / 2,
-      tempCanvas.width,
-      tempCanvas.height
-    );
-
-    layer.state.rotation = angle;
-
-    syncVisibleCanvas(layer);
+    commands.execute(new RotateCanvasCommand(layer, imageData, angle, radians, uiReflector));
   }
 
   function rotateCanvasLayerContent90(layer: CanvasLayer): void {
@@ -461,8 +432,8 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
       save: (): void => {
         saveLayer(layer);
       },
-      rotate: (angle: number): void => {
-        rotateCanvasLayerContent(layer, angle);
+      rotate: (angle: number, uiReflector: (angle: number) => void): void => {
+        rotateCanvasLayerContent(layer, angle, uiReflector);
       },
       rotate90: (): void => {
         rotateCanvasLayerContent90(layer);

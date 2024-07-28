@@ -7,6 +7,7 @@ import Icon from '../../icon';
 import ripple from '../../ripple';
 import {i18n} from '../../../lib/langPack';
 import CropCommand from '../services/commands/CropCommand';
+import RotateCanvasCommand from '../services/commands/RotateCanvasCommand';
 
 interface CropProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
@@ -431,6 +432,8 @@ export default function Crop(props: CropProps) {
 
     slider.classList.add('pe-resizer__slider--dragging');
     (cropBoxGrid as HTMLElement).classList.add('pe-crop-grid--rotating');
+
+    props.layerMaganer().commands.startBatch();
   }
 
   function endAngleSlide() {
@@ -440,6 +443,8 @@ export default function Crop(props: CropProps) {
 
     slider.classList.remove('pe-resizer__slider--dragging');
     (cropBoxGrid as HTMLElement).classList.remove('pe-crop-grid--rotating');
+
+    props.layerMaganer().commands.endBatch();
   }
 
   function resetSliderPosition() {
@@ -454,6 +459,30 @@ export default function Crop(props: CropProps) {
     layer.state.rotation = 0;
   }
 
+  function moveSliderToAngle(angle: number) {
+    const slider = resizeSlider as HTMLElement;
+    const maxTranslateAbs = 260;
+    const minAngle = -180;
+    const maxAngle = 180;
+    const range = maxAngle - minAngle;
+    const sliderWidth = slider.clientWidth;
+
+    const normalizedAngle = (angle * -1 - minAngle) / range;
+    const x = (normalizedAngle * sliderWidth) - (sliderWidth / 2);
+
+    let adjustedX = x;
+
+    if(adjustedX > maxTranslateAbs) {
+      adjustedX = maxTranslateAbs;
+    } else if(adjustedX < -maxTranslateAbs) {
+      adjustedX = -maxTranslateAbs;
+    }
+
+    slider.style.transform = `translateX(${adjustedX}px)`;
+    currentSliderLeft = adjustedX;
+  }
+
+
   function moveAngleSlide(e: Event) {
     if(!sliderDraggingInfo) {
       return;
@@ -466,7 +495,6 @@ export default function Crop(props: CropProps) {
 
     let x = initialLeft + deltaX;
 
-    // Update the slider position
     const slider = resizeSlider as HTMLElement;
 
     const maxTranslateAbs = 260;
@@ -489,8 +517,11 @@ export default function Crop(props: CropProps) {
     const angle = (normalizedX * range + minAngle) * -1;
 
     const angleRounded = Math.round(angle);
-    setAngle(angleRounded);
-    rotateImage(angleRounded);
+    props.layerMaganer().getBaseCanvasLayer().rotate(angleRounded, (angle) => {
+      setAngle(angle);
+      resetSliderPosition();
+      moveSliderToAngle(angle);
+    });
   }
 
   function showResizeSlider() {
@@ -600,17 +631,6 @@ export default function Crop(props: CropProps) {
     resetSliderPosition();
 
     initCrop();
-  }
-
-  function rotateImage(degrees: number) {
-    const imageLayer = props.layerMaganer().getBaseCanvasLayer();
-
-    if(!imageLayer) {
-      return;
-    }
-
-    imageLayer.rotate(degrees);
-    // imageLayer.save();
   }
 
   createEffect(() => {
