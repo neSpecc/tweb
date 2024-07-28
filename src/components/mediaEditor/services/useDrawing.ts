@@ -149,41 +149,73 @@ export function useDrawing(params: UseDrawingParams) {
     originalImageOffscreenContext.stroke();
   }
 
-  function drawByNeon(event: MouseEvent): void {
-    if(drawingOptions.isAnimating) {
+  function drawByNeon(event: MouseEvent) {
+    if(!drawingOptions.isDrawing) {
       return;
     }
 
     const {x, y} = getCoordinates(event);
+    drawingOptions.points.push({x, y});
+
+    const layersCount = 10;
+    const baseAlpha = 0.004;
+    const alphaDecrement = baseAlpha / (layersCount - 1);
+
+    function drawNeonDot(context: OffscreenCanvasRenderingContext2D, x: number, y: number, size: number, alpha: number) {
+      context.save();
+      context.beginPath();
+      context.arc(x, y, size, 0, Math.PI * 2);
+      context.globalAlpha = alpha;
+      context.fillStyle = drawingOptions.color;
+      context.fill();
+      context.restore();
+    }
+
+    originalImageOffscreenContext.globalCompositeOperation = 'lighter';
+
+    for(let i = 0; i < layersCount; i++) {
+      const size = drawingOptions.brushSize * (1.5 - i * 0.02);
+      const alpha = baseAlpha - i * alphaDecrement;
+
+      if(drawingOptions.points.length > 1) {
+        const prevPoint = drawingOptions.points[drawingOptions.points.length - 2];
+        const distance = Math.sqrt((x - prevPoint.x) ** 2 + (y - prevPoint.y) ** 2);
+        const steps = Math.ceil(distance / (size / 10));
+
+        for(let j = 0; j < steps; j++) {
+          const t = j / steps;
+          const xStep = prevPoint.x + t * (x - prevPoint.x);
+          const yStep = prevPoint.y + t * (y - prevPoint.y);
+          drawNeonDot(originalImageOffscreenContext, xStep, yStep, size, alpha);
+        }
+      } else {
+        drawNeonDot(originalImageOffscreenContext, x, y, size, alpha / 20);
+      }
+    }
 
     originalImageOffscreenContext.lineWidth = drawingOptions.brushSize;
-    originalImageOffscreenContext.lineCap = 'round';
     originalImageOffscreenContext.strokeStyle = '#ffffff';
-
+    originalImageOffscreenContext.lineCap = 'round';
     originalImageOffscreenContext.lineJoin = 'round';
-
-    originalImageOffscreenContext.shadowColor = `rgba(${hexToRgb(drawingOptions.color)}, 0.3)`;
-    originalImageOffscreenContext.shadowBlur = drawingOptions.brushSize;
-
-    drawingOptions.points.push({
-      x,
-      y
-    });
-
-    const epsilon = 2;
-    const filteredPoints = ramerDouglasPeucker(drawingOptions.points, epsilon);
-
+    originalImageOffscreenContext.globalAlpha = 1.0;
     originalImageOffscreenContext.beginPath();
-    originalImageOffscreenContext.moveTo(filteredPoints[0].x, filteredPoints[0].y);
 
-    for(const point of filteredPoints) {
-      originalImageOffscreenContext.lineTo(point.x, point.y);
+    if(drawingOptions.points.length > 1) {
+      originalImageOffscreenContext.moveTo(drawingOptions.points[0].x, drawingOptions.points[0].y);
+      for(let i = 1; i < drawingOptions.points.length - 1; i++) {
+        const midPointX = (drawingOptions.points[i].x + drawingOptions.points[i + 1].x) / 2;
+        const midPointY = (drawingOptions.points[i].y + drawingOptions.points[i + 1].y) / 2;
+        originalImageOffscreenContext.quadraticCurveTo(drawingOptions.points[i].x, drawingOptions.points[i].y, midPointX, midPointY);
+      }
+      originalImageOffscreenContext.lineTo(drawingOptions.points[drawingOptions.points.length - 1].x, drawingOptions.points[drawingOptions.points.length - 1].y);
+    } else if(drawingOptions.points.length === 1) {
+      originalImageOffscreenContext.moveTo(drawingOptions.points[0].x, drawingOptions.points[0].y);
+      originalImageOffscreenContext.lineTo(drawingOptions.points[0].x, drawingOptions.points[0].y);
     }
 
     originalImageOffscreenContext.stroke();
 
-    originalImageOffscreenContext.shadowBlur = 0;
-    originalImageOffscreenContext.shadowColor = 'transparent';
+    originalImageOffscreenContext.globalCompositeOperation = 'source-over';
   }
 
   function drawByBlur(event: MouseEvent): void {

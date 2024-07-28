@@ -220,20 +220,19 @@ export default class Chat extends EventListenerBase<{
       });
     }
 
-    requestIdleCallback(() => {
-      const img = new Image();
-      img.src = 'https://leonardo.osnova.io/ed0d991b-0df2-5b9d-b138-985cd4eb782e/-/preview/1200x/-/format/webp';
-      img.crossOrigin = 'anonymous';
-      img.onload = async() => {
-        const file = await createFileFromImageElement(img, 'image.png');
-        PopupElement.createPopup(PopupMediaEditor, {
-          file,
-          width: img.width,
-          height: img.height,
-          onSave: () => {}
-        }).show();
-      };
-    })
+
+    const img = new Image();
+    img.src = 'https://leonardo.osnova.io/ed0d991b-0df2-5b9d-b138-985cd4eb782e/-/preview/1200x/-/format/webp';
+    img.crossOrigin = 'anonymous';
+    img.onload = async() => {
+      const file = await createFileFromImageElement(img, 'image.png');
+      PopupElement.createPopup(PopupMediaEditor, {
+        file,
+        width: img.width,
+        height: img.height,
+        onSave: () => {}
+      }).show();
+    };
   }
 
   public hasBackgroundSet() {
