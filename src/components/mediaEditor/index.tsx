@@ -47,6 +47,7 @@ function MediaEditor(params: {
   const [tab, setTab] = createSignal<number>(0);
   const [canUndo, setCanUndo] = createSignal(false);
   const [canRedo, setCanRedo] = createSignal(false);
+  const [mainScrollable, setMainScrollable] = createSignal<Scrollable>();
 
   /**
    * This element holds the layer system
@@ -342,6 +343,7 @@ function MediaEditor(params: {
             <Match when={tab() === 4}>
               <Stickers
                 layerMaganer={layerManager as () => ReturnType<typeof useCanvasLayers>}
+                mainScrollable={mainScrollable()}
               />
             </Match>
           </Switch>
@@ -350,6 +352,8 @@ function MediaEditor(params: {
     )
 
     const scrollable = new Scrollable(el as HTMLElement);
+
+    setMainScrollable(scrollable);
 
     return scrollable.container;
   }

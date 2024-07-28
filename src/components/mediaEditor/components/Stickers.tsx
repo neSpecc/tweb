@@ -2,25 +2,20 @@ import type {Accessor} from 'solid-js';
 import {createSignal, For, onCleanup, onMount} from 'solid-js';
 import type {DivLayer, useCanvasLayers} from '../services/useCanvasLayers';
 import rootScope from '../../../lib/rootScope';
-import emoticonsDropdown, {EmoticonsDropdown, EMOTICONSSTICKERGROUP} from '../../emoticonsDropdown';
-import cloneDOMRect from '../../../helpers/dom/cloneDOMRect';
-import EmojiTab from '../../emoticonsDropdown/tabs/emoji';
-import {AccountEmojiStatuses, Document, EmojiGroup, EmojiStatus} from '../../../layer';
-import filterUnique from '../../../helpers/array/filterUnique';
-import flatten from '../../../helpers/array/flatten';
-import Icon, {getIconContent} from '../../icon';
+import {EMOTICONSSTICKERGROUP} from '../../emoticonsDropdown';
+import {Document, EmojiGroup} from '../../../layer';
 import SuperStickerRenderer from '../../emoticonsDropdown/tabs/SuperStickerRenderer';
 import LazyLoadQueue from '../../lazyLoadQueue';
 import {MyDocument} from '../../../lib/appManagers/appDocsManager';
 import ButtonIcon from '../../buttonIcon';
-import {DraggableBox} from '../services/useDraggableBox';
 import EmoticonsSearch from '../../emoticonsDropdown/search';
 import {i18n} from '../../../lib/langPack';
 import {attachClickEvent} from '../../../helpers/dom/clickEvent';
-import {ScrollableX} from '../../scrollable';
+import Scrollable, {ScrollableX} from '../../scrollable';
 
 interface StickersProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
+  mainScrollable: Scrollable;
 }
 
 interface StikerSetMeta {
@@ -33,7 +28,6 @@ export default function Stickers(props: StickersProps) {
   const [renderer, setRenderer] = createSignal<SuperStickerRenderer>();
   const [sets, setSets] = createSignal<StikerSetMeta[]>([]);
   const [stickersLayer, setStickersLayer] = createSignal<DivLayer>();
-  const [emojiGroups, setEmojiGroups] = createSignal<EmojiGroup[]>([]);
   const [loading, setLoading] = createSignal(false);
   const [selectedGroup, setSelectedGroup] = createSignal<EmojiGroup>(null);
   const [selectedGroupStickers, setSelectedGroupStickers] = createSignal<MyDocument[]>([]);
@@ -119,9 +113,9 @@ export default function Stickers(props: StickersProps) {
       return;
     }
 
-    set.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start'
+    props.mainScrollable.scrollIntoViewNew({
+      element: set,
+      position: 'start'
     });
   }
 

@@ -1128,7 +1128,7 @@ export function useDraggableBox() {
       }
       else {
         imageHeight = box.position.width * scaleFactor;
-        imageWidth = imageHeight / ratio;
+        imageWidth = imageHeight * ratio;
       }
 
       const topOffset = (box.position.height * scaleFactor - imageHeight) / 2;
