@@ -25,7 +25,7 @@ export function useFilters() {
    */
   function brightness(data: Uint8ClampedArray, brightness: number): void {
     let factor = (brightness + 100) / 100;
-    const strength = 0.6;
+    const strength = 0.3;
 
     factor = factor * strength + 1 - strength;
 
@@ -42,7 +42,7 @@ export function useFilters() {
    * @param contrast - The contrast value to apply. From -100 to 100.
    */
   function contrast(data: Uint8ClampedArray, contrast: number) {
-    const strength = 0.5;
+    const strength = 0.3;
     const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
 
     for(let i = 0; i < data.length; i += 4) {
@@ -79,7 +79,7 @@ export function useFilters() {
    */
   function warmth(data: Uint8ClampedArray, warmth: number) {
     const factor = warmth / 100;
-    const strength = 0.5;
+    const strength = 0.3;
 
     for(let i = 0; i < data.length; i += 4) {
       data[i] = Math.min(255, Math.max(0, data[i] + strength * (factor * 50))); // Red
@@ -204,7 +204,7 @@ export function useFilters() {
 
   function sharpen(data: Uint8ClampedArray, sharpen: number, {width, height}: { width: number; height: number }) {
     const intensity = sharpen / 100;
-    const strength = 0.7;
+    const strength = 0.5;
 
     const weights = [
       0,
