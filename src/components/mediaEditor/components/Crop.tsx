@@ -262,7 +262,7 @@ export default function Crop(props: CropProps) {
   };
 
   const documentKeydownListener = (event: KeyboardEvent) => {
-    if(event.key === 'Enter') {
+    if(event.key === 'Enter' || event.key === 'Delete' || event.key === 'Backspace') {
       crop(cropBox()!.position);
     } else if(event.key === 'Escape') {
       const {width, height} = getCropBoxDimensions();

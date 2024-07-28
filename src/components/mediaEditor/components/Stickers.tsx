@@ -40,6 +40,11 @@ export default function Stickers(props: StickersProps) {
   const [isSearchPerformed, setIsSearchPerformed] = createSignal(false);
   const [isLoading, setIsLoading] = createSignal(false);
 
+  function documentKeydownHandler(event: KeyboardEvent) {
+    if(event.key === 'Delete' || event.key === 'Backspace') {
+      stickersLayer().getActiveBox()?.remove();
+    }
+  }
 
   async function init() {
     const layer = props.layerMaganer().getStickersLayer();
@@ -71,11 +76,15 @@ export default function Stickers(props: StickersProps) {
     setSets([recentSet]);
 
     void loadAllStickers();
+
+    document.addEventListener('keydown', documentKeydownHandler);
   }
 
   function destroy() {
     stickersLayer().disable();
     stickersLayer().deactivateAllBoxes();
+
+    document.removeEventListener('keydown', documentKeydownHandler);
   }
 
   async function loadAllStickers() {
