@@ -151,7 +151,11 @@ export function useTextTool(params: UseTextToolParams) {
 
     const padX = boxState.fontSize / 4;
     const padY = boxState.fontSize / 8;
-    const radius = boxState.fontSize / 2.2;
+    let radius = boxState.fontSize / 2.2;
+
+    if(radius > box.position.height / 2) {
+      radius = Math.round(box.position.height / 2);
+    }
 
     // function dot(x: number, y: number, color = 'white'): string {
     //   const dot = document.createElement('div');
