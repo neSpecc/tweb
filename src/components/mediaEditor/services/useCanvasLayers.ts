@@ -32,7 +32,7 @@ export interface CanvasLayer extends LayerBase {
   originalImageOffscreenContext: OffscreenCanvasRenderingContext2D;
   imageData: ImageData;
   state: CanvasLayerState;
-  save: (withoutFilters?: boolean) => void;
+  save: (skipHistory?: boolean) => void;
   rotate: (angle: number, uiReflector: (angle: number) => void) => void;
   rotate90: () => void;
   flip: () => void;
@@ -429,8 +429,8 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
       remove: (): void => {
         removeCanvasLayer(layer);
       },
-      save: (): void => {
-        saveLayer(layer);
+      save: (skipHistory?: boolean): void => {
+        saveLayer(layer, skipHistory);
       },
       rotate: (angle: number, uiReflector: (angle: number) => void): void => {
         rotateCanvasLayerContent(layer, angle, uiReflector);

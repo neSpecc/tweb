@@ -151,6 +151,7 @@ export default function Crop(props: CropProps) {
 
   onCleanup(() => {
     destroy();
+    props.layerMaganer().getBaseCanvasLayer().save()
   });
 
   function flip() {

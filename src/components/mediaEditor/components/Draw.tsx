@@ -58,7 +58,7 @@ export default function Brush(props: BrushProps) {
 
     const layer = props.layerMaganer().getBaseCanvasLayer();
 
-    layer.save();
+    layer.save(true);
 
     drawingService.destroy();
   }
