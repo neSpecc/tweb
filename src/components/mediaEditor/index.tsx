@@ -22,8 +22,6 @@ import {i18n} from '../../lib/langPack';
 /**
  * @todo add undo/redo for crop
  * @todo add undo/redo for resize
- * @todo add undo/redo for adding text
- * @todo add undo/redo for adding stickers
  *
  *
  *

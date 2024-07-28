@@ -1,8 +1,10 @@
 import {isColorLight} from '../../../helpers/color';
-import type {DivLayer} from './useCanvasLayers';
+import AddBoxCommand from './commands/AddBoxCommand';
+import type {DivLayer, useCanvasLayers} from './useCanvasLayers';
 import type {DraggableBox, TextBoxMeta} from './useDraggableBox';
 
 interface UseTextToolParams {
+  layerManager: ReturnType<typeof useCanvasLayers>;
   layer: DivLayer;
   onFontSizeChange?: (value: number) => void;
 }
@@ -476,6 +478,14 @@ export function useTextTool(params: UseTextToolParams) {
       })
     })
 
+    textarea.addEventListener('keydown', (event: Event) => {
+      const isCmdOrCtrl = (event as KeyboardEvent).metaKey || (event as KeyboardEvent).ctrlKey;
+
+      if(isCmdOrCtrl && ['z', 'y'].includes((event as KeyboardEvent).key)) {
+        event.preventDefault();
+      }
+    })
+
     textarea.addEventListener('beforeinput', (event: Event) => {
       const inputType = (event as InputEvent).inputType;
       /**
@@ -494,8 +504,8 @@ export function useTextTool(params: UseTextToolParams) {
     });
 
     box.append(textarea);
-    params.layer.insertBox(box, x, y);
-    params.layer.activateBox(box);
+
+    params.layerManager.commands.execute(new AddBoxCommand(params.layer, box, x, y));
 
     updateBoxParam(box, {
       fontSize: preset.fontSize,
@@ -513,13 +523,6 @@ export function useTextTool(params: UseTextToolParams) {
     setColor(preset.color);
     setAlignment(preset.alignment);
     setStyle(preset.style);
-    setFont(preset.font);
-
-    // requestAnimationFrame(() => {
-    //   console.log('raw');
-
-    //   textarea.focus();
-    // });
   }
 
   function setTextSize(value: number): void {

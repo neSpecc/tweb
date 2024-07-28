@@ -73,13 +73,68 @@ export interface LayerCreationParams {
   onActivate?: (box: DraggableBox) => void;
 }
 
+export interface CommandsService {
+  execute: (command: Command) => void;
+  startBatch: () => void;
+  endBatch: () => void;
+  undo: () => void;
+  redo: () => void;
+}
+
 export function useCanvasLayers(params?: UseCanvasLayersParams) {
   const layers = new Set<Layer>();
 
   let textLayer: DivLayer | null = null;
   let stickersLayer: DivLayer | null = null;
 
-  const {create: createDraggableBox} = useDraggableBox();
+  const commandManager = new CommandManager();
+
+  const commands: CommandsService = {
+    execute(command: Command) {
+      commandManager.executeCommand(command);
+      onAfterHistoryChange();
+    },
+    startBatch() {
+      commandManager.startBatch();
+      onAfterHistoryChange();
+    },
+    endBatch() {
+      commandManager.endBatch();
+      onAfterHistoryChange();
+    },
+    undo() {
+      commandManager.undo();
+      onAfterHistoryChange();
+    },
+    redo() {
+      commandManager.redo();
+      onAfterHistoryChange();
+    }
+  };
+
+  function onAfterHistoryChange() {
+    const canUndo = commandManager.canUndo();
+    const canRedo = commandManager.canRedo();
+
+    params?.onHistoryChange(canUndo, canRedo);
+  }
+
+  const keydownHandler = (event: KeyboardEvent) => {
+    if(event.metaKey || event.ctrlKey) {
+      if(event.key === 'z') {
+        commands.undo();
+      }
+      else if(event.key === 'y') {
+        event.preventDefault();
+        commands.redo();
+      }
+    }
+  };
+
+  document.addEventListener('keydown', keydownHandler);
+
+
+  const {create: createDraggableBox} = useDraggableBox(commands);
   const {restoreFilters} = useFilters();
 
   if(!params?.wrapperEl) {
@@ -729,52 +784,6 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
 
     return stickersLayer;
   }
-
-  const commandManager = new CommandManager();
-
-  const commands = {
-    execute(command: Command) {
-      commandManager.executeCommand(command);
-      onAfterHistoryChange();
-    },
-    startBatch() {
-      commandManager.startBatch();
-      onAfterHistoryChange();
-    },
-    endBatch() {
-      commandManager.endBatch();
-      onAfterHistoryChange();
-    },
-    undo() {
-      commandManager.undo();
-      onAfterHistoryChange();
-    },
-    redo() {
-      commandManager.redo();
-      onAfterHistoryChange();
-    }
-  };
-
-  function onAfterHistoryChange() {
-    const canUndo = commandManager.canUndo();
-    const canRedo = commandManager.canRedo();
-
-    params?.onHistoryChange(canUndo, canRedo);
-  }
-
-  const keydownHandler = (event: KeyboardEvent) => {
-    if(event.metaKey || event.ctrlKey) {
-      if(event.key === 'z') {
-        commands.undo();
-      }
-      else if(event.key === 'y') {
-        event.preventDefault();
-        commands.redo();
-      }
-    }
-  };
-
-  document.addEventListener('keydown', keydownHandler);
 
   return {
     createCanvasLayer,

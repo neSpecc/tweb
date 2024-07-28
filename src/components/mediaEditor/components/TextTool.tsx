@@ -52,6 +52,7 @@ export default function TextTool(props: TextToolProps) {
     layer.enable();
 
     const tool = useTextTool({
+      layerManager: props.layerMaganer(),
       layer,
       onFontSizeChange: (value) => {
         setFontSize(value);

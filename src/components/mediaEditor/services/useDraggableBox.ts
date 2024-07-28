@@ -1,3 +1,6 @@
+import DragBoxCommand from './commands/DragBoxCommand copy';
+import type {CommandsService} from './useCanvasLayers';
+
 export interface TextBoxMeta {
   fontSize: number;
   originalWidth: number;
@@ -119,7 +122,7 @@ const CSS = {
  */
 type DraggableBoxDirection = 'top left' | 'top right' | 'bottom left' | 'bottom right';
 
-export function useDraggableBox() {
+export function useDraggableBox(commands: CommandsService) {
   let currentlyScaling: ScalingBoxData | null = null;
   let currentlyDragging: DraggingBoxData | null = null;
   let currentlyRotating: RotatingBoxData | null = null;
@@ -483,7 +486,7 @@ export function useDraggableBox() {
       }
     }
 
-    box.moveTo(x, y);
+    commands.execute(new DragBoxCommand(box, x, y));
   }
 
   function prepareHorizons(parentElement: HTMLElement) {
@@ -796,6 +799,8 @@ export function useDraggableBox() {
       return;
     }
 
+    commands.startBatch();
+
     box.creationAttributes.onBeforeDrag?.();
 
     const boxRect = box.el.getBoundingClientRect();
@@ -822,6 +827,8 @@ export function useDraggableBox() {
 
     box.creationAttributes.onAfterDrag?.();
     currentlyDragging = null;
+
+    commands.endBatch();
   }
 
   function beginRotate(box: DraggableBox, event: MouseEvent) {

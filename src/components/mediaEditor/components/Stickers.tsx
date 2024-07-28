@@ -12,6 +12,7 @@ import EmoticonsSearch from '../../emoticonsDropdown/search';
 import {i18n} from '../../../lib/langPack';
 import {attachClickEvent} from '../../../helpers/dom/clickEvent';
 import Scrollable, {ScrollableX} from '../../scrollable';
+import AddBoxCommand from '../services/commands/AddBoxCommand';
 
 interface StickersProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
@@ -168,11 +169,10 @@ export default function Stickers(props: StickersProps) {
 
     box.append(stickerRendered);
 
-    const centerX = stickersLayer().div.offsetWidth / 2
-    const centerY = stickersLayer().div.offsetHeight / 2
+    const centerX = stickersLayer().div.offsetWidth / 2;
+    const centerY = stickersLayer().div.offsetHeight / 2;
 
-    stickersLayer().insertBox(box, centerX, centerY);
-    stickersLayer().activateBox(box);
+    props.layerMaganer().commands.execute(new AddBoxCommand(stickersLayer(), box, centerX, centerY));
   }
 
   async function searchFetcher(value: string): Promise<void> {
