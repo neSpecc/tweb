@@ -1049,7 +1049,7 @@ export function useDraggableBox() {
       const padX = box.meta.bgPadX * scaleFactor;
       const padY = box.meta.bgPadY * scaleFactor;
 
-      const lineRect = line.getBoundingClientRect();
+      // const lineRect = line.getBoundingClientRect();
       const lineTop = Math.round(line.offsetTop * scaleFactor + padY);
       const lineLeft = Math.round(line.offsetLeft * scaleFactor + padX);
 

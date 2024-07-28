@@ -388,9 +388,6 @@ export function useTextTool(params: UseTextToolParams) {
     textarea.classList.add(CSS.textBox);
     insertLineWrapper(textarea);
 
-    /**
-     * @todo Disable pasting, shortcuts, etc
-     */
     textarea.contentEditable = 'true';
 
     const box = params.layer.createBox({
@@ -466,14 +463,23 @@ export function useTextTool(params: UseTextToolParams) {
       drawSvgShape(box);
     });
 
+    textarea.addEventListener('paste', (e: Event) => {
+      textarea.contentEditable = 'false';
+
+      requestAnimationFrame(() => {
+        textarea.contentEditable = 'true';
+        focusEditableDiv(textarea);
+      })
+    })
+
     textarea.addEventListener('beforeinput', (event: Event) => {
       const inputType = (event as InputEvent).inputType;
-
       /**
        * Prevent deleting last line wrapper
        */
       if(inputType === 'deleteContentBackward' && textarea.textContent!.replace('/\u200B/', '').trim() === '') {
         event.preventDefault();
+        box.remove();
       }
 
       if(inputType === 'insertLineBreak' || inputType === 'insertParagraph') {
