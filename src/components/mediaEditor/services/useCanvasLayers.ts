@@ -88,6 +88,8 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
 
   const layersParent = document.createElement('div');
 
+  layersParent.classList.add('layers-parent');
+
   layersParent.style.position = 'relative';
   layersParent.style.width = '100%';
   layersParent.style.height = '100%';
@@ -378,6 +380,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
      * Create a visible canvas layer
      */
     const visibleCanvas = document.createElement('canvas');
+    visibleCanvas.classList.add('visible-canvas');
     const visibleCanvasContext = visibleCanvas.getContext('2d') as CanvasRenderingContext2D;
 
     visibleCanvas.width = layersParent.offsetWidth;

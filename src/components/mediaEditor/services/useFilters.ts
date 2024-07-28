@@ -294,35 +294,6 @@ export function useFilters() {
     });
   }
 
-  // function applyFilter(canvas: HTMLCanvasElement, filter: keyof typeof filters, value: number) {
-  //   const context = canvas.getContext('2d');
-
-  //   if (!context || !offScreenContext) {
-  //     throw new Error('Could not get canvas context to apply filter');
-  //   }
-
-  //   offScreenCanvas.width = canvas.width;
-  //   offScreenCanvas.height = canvas.height;
-
-  //   offScreenContext.drawImage(canvas, 0, 0);
-
-  //   const imageData = offScreenContext.getImageData(0, 0, offScreenCanvas.width, offScreenCanvas.height);
-  //   const data = imageData.data;
-
-  //   if (!(filter in filters)) {
-  //     throw new Error(`Filter ${filter} not found`);
-  //   }
-
-  //   filters[filter](data, value, {
-  //     width: offScreenCanvas.width,
-  //     height: offScreenCanvas.height,
-  //   });
-
-  //   offScreenContext.putImageData(imageData, 0, 0);
-  //   context.clearRect(0, 0, canvas.width, canvas.height);
-  //   context.drawImage(offScreenCanvas, 0, 0);
-  // }
-
   function restoreFilters(imageData: ImageData, filtersValues: Partial<CanvasFilters>) {
     const data = imageData.data;
 
@@ -337,38 +308,6 @@ export function useFilters() {
       });
     }
   }
-
-  // function restoreFilters(canvas: HTMLCanvasElement, filtersValues: Record<keyof typeof filters, number>) {
-  //   const context = canvas.getContext('2d');
-
-  //   if (!context || !offScreenContext) {
-  //     throw new Error('Could not get canvas context to restore filters');
-  //   }
-
-  //   offScreenCanvas.width = canvas.width;
-  //   offScreenCanvas.height = canvas.height;
-
-  //   offScreenContext.drawImage(canvas, 0, 0);
-
-  //   const imageData = offScreenContext.getImageData(0, 0, offScreenCanvas.width, offScreenCanvas.height);
-  //   const data = imageData.data;
-
-  //   for (const [filter, value] of Object.entries(filtersValues)) {
-  //     if (!(filter in filters)) {
-  //       throw new Error(`Filter ${filter} not found`);
-  //     }
-
-  //     filters[filter](data, value, {
-  //       width: offScreenCanvas.width,
-  //       height: offScreenCanvas.height,
-  //     });
-  //   }
-
-  //   offScreenContext.putImageData(imageData, 0, 0);
-  //   context.clearRect(0, 0, canvas.width, canvas.height);
-  //   context.drawImage(offScreenCanvas, 0, 0);
-  // }
-
   return {
     applyFilter,
     restoreFilters

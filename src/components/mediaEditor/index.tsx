@@ -15,6 +15,8 @@ import Icons from '../../icons';
 import ripple from '../ripple';
 import {ButtonIconTsx} from '../buttonIconTsx';
 import canvasToFile from '../../helpers/canvas/canvasToFile';
+import ButtonCorner from '../buttonCorner';
+import {attachClickEvent} from '../../helpers/dom/clickEvent';
 
 
 /**
@@ -81,9 +83,6 @@ function MediaEditor(params: {
     show(content: Element) {
       leftZoneControls.element.appendChild(content);
       resizeCanvasWrapperToParent(cropModeMargins, true);
-      // requestAnimationFrame(() => {
-      //   layerManager()?.getBaseCanvasLayer().save();
-      // });
     },
     hide() {
       leftZoneControls.element.innerHTML = '';
@@ -316,6 +315,16 @@ function MediaEditor(params: {
     })
   }
 
+  function createSaveButton(): HTMLElement {
+    const button = ButtonCorner({
+      icon: 'check'
+    })
+
+    attachClickEvent(button, saveResult);
+
+    return button;
+  }
+
   return (
     <>
       <div class="media-editor">
@@ -409,8 +418,7 @@ function MediaEditor(params: {
             </Switch>
           </div>
         </div>
-        <div class="media-editor__save" onClick={saveResult}>
-        </div>
+        { createSaveButton() }
       </div>
     </>
   );

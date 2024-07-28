@@ -8,6 +8,7 @@
 }
 
 .media-editor {
+  position: relative;
   display: grid;
   grid-template-columns: auto 400px;
   width: 100%;
@@ -26,6 +27,16 @@
   --color-value: var(--primary-color);
   /* --color-section-header: #717579; */
   --color-section-header: #AAAAAA;
+
+  .btn-corner {
+    right: 16px;
+    bottom: 76px;
+    transform: none;
+  }
+
+  .layers-parent {
+    
+  }
 }
 
 .media-editor__left {
@@ -53,21 +64,6 @@
 }
 
 .media-editor__right {
-}
-
-.media-editor__save {
-  position: absolute;
-  bottom: 16px;
-  right: 16px;
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-  background: var(--color-value);
-  cursor: pointer;
 }
 
 .media-editor-slider .progress-line {
@@ -529,6 +525,10 @@ html.no-touch .draggable-box .super-sticker:hover {
   position: absolute;
   left: 16px;
   top: 12px;
+
+  .icon-rotated {
+    transform: rotate(90deg);
+  }
 }
 
 .pe-crop__title {
@@ -1014,6 +1014,10 @@ html.no-touch .draggable-box .super-sticker:hover {
   color: var(--color-secondary);
   padding: 9px 16px;
   gap: 6px;
+
+  .scrollable {
+    position: absolute;
+  }
 }
 
 .pe-stickers-set {
@@ -1024,4 +1028,12 @@ html.no-touch .draggable-box .super-sticker:hover {
   &-item {
     padding-top: 8px;
   }
+}
+
+.pe-stickers-nothing-found {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: var(--color-secondary);
 }
