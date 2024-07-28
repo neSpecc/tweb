@@ -33,6 +33,7 @@ export default function Brush(props: BrushProps) {
 
     const drawingService = useDrawing({
       originalImageOffscreenCanvas: layer.originalImageOffscreenCanvas,
+      originalImageOffscreenContext: layer.originalImageOffscreenContext,
       imageData: layer.imageData,
       visibleCanvas: layer.visibleCanvas,
       onDraw() {

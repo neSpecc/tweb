@@ -7,19 +7,23 @@ export type DrawingTool = 'pen' | 'brush' | 'arrow' | 'neon' | 'blur' | 'eraser'
 interface Point { x: number; y: number }
 
 interface UseDrawingParams {
-  originalImageOffscreenCanvas: OffscreenCanvas;
+  originalImageOffscreenCanvas: OffscreenCanvas
+  originalImageOffscreenContext: OffscreenCanvasRenderingContext2D | null;
   imageData: ImageData;
   visibleCanvas: HTMLCanvasElement;
   onDraw: () => void;
 }
 
 export function useDrawing(params: UseDrawingParams) {
-  const {originalImageOffscreenCanvas, imageData, visibleCanvas} = params;
-
-  const offscreenCanvas = originalImageOffscreenCanvas;
-  const offscreenContext = offscreenCanvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
+  const {
+    originalImageOffscreenCanvas,
+    originalImageOffscreenContext,
+    imageData,
+    visibleCanvas
+  } = params;
 
   let blurredCanvas: HTMLCanvasElement | null = null;
+  let erasingCanvas: HTMLCanvasElement | null = null;
   let worker: Worker | null = null;
 
   const drawingOptions = {
@@ -37,8 +41,8 @@ export function useDrawing(params: UseDrawingParams) {
   function getCoordinates(event: MouseEvent): Point {
     const visibleWidth = visibleCanvas.width;
     const visibleHeight = visibleCanvas.height;
-    const offscreenWidth = offscreenCanvas.width;
-    const offscreenHeight = offscreenCanvas.height;
+    const offscreenWidth = originalImageOffscreenCanvas.width;
+    const offscreenHeight = originalImageOffscreenCanvas.height;
 
     const scaleX = offscreenWidth / visibleWidth;
     const scaleY = offscreenHeight / visibleHeight;
@@ -54,21 +58,21 @@ export function useDrawing(params: UseDrawingParams) {
       return;
     }
 
-    if(offscreenContext === null) {
+    if(originalImageOffscreenContext === null) {
       throw new Error('Offscreen context is not initialized');
     }
 
     const {x, y} = getCoordinates(event);
 
-    offscreenContext.lineWidth = drawingOptions.brushSize;
-    offscreenContext.lineCap = 'round';
-    offscreenContext.strokeStyle = drawingOptions.color;
-    offscreenContext.globalCompositeOperation = 'source-over';
+    originalImageOffscreenContext.lineWidth = drawingOptions.brushSize;
+    originalImageOffscreenContext.lineCap = 'round';
+    originalImageOffscreenContext.strokeStyle = drawingOptions.color;
+    originalImageOffscreenContext.globalCompositeOperation = 'source-over';
 
-    offscreenContext.lineTo(x, y);
-    offscreenContext.stroke();
-    offscreenContext.beginPath();
-    offscreenContext.moveTo(x, y);
+    originalImageOffscreenContext.lineTo(x, y);
+    originalImageOffscreenContext.stroke();
+    originalImageOffscreenContext.beginPath();
+    originalImageOffscreenContext.moveTo(x, y);
   }
 
   function drawByBrush(event: MouseEvent) {
@@ -89,13 +93,13 @@ export function useDrawing(params: UseDrawingParams) {
     drawingOptions.points.push({x, y});
 
     function drawBrushDot(x: number, y: number, alpha: number) {
-      offscreenContext!.save();
-      offscreenContext!.beginPath();
-      offscreenContext!.translate(x, y);
-      offscreenContext!.ellipse(0, 0, radiusX, radiusY, (45 * Math.PI) / 180, 0, Math.PI * 2);
-      offscreenContext!.fillStyle = `rgba(${hexToRgb(brushColor)}, ${alpha})`;
-      offscreenContext!.fill();
-      offscreenContext!.restore();
+      originalImageOffscreenContext!.save();
+      originalImageOffscreenContext!.beginPath();
+      originalImageOffscreenContext!.translate(x, y);
+      originalImageOffscreenContext!.ellipse(0, 0, radiusX, radiusY, (45 * Math.PI) / 180, 0, Math.PI * 2);
+      originalImageOffscreenContext!.fillStyle = `rgba(${hexToRgb(brushColor)}, ${alpha})`;
+      originalImageOffscreenContext!.fill();
+      originalImageOffscreenContext!.restore();
     }
 
     if(drawingOptions.points.length > 1) {
@@ -122,10 +126,10 @@ export function useDrawing(params: UseDrawingParams) {
 
     const {x, y} = getCoordinates(event);
 
-    offscreenContext.lineWidth = drawingOptions.brushSize;
-    offscreenContext.lineCap = 'round';
-    offscreenContext.lineJoin = 'round';
-    offscreenContext.strokeStyle = drawingOptions.color;
+    originalImageOffscreenContext.lineWidth = drawingOptions.brushSize;
+    originalImageOffscreenContext.lineCap = 'round';
+    originalImageOffscreenContext.lineJoin = 'round';
+    originalImageOffscreenContext.strokeStyle = drawingOptions.color;
 
     drawingOptions.points.push({
       x,
@@ -135,14 +139,14 @@ export function useDrawing(params: UseDrawingParams) {
     const epsilon = 2;
     const filteredPoints = ramerDouglasPeucker(drawingOptions.points, epsilon);
 
-    offscreenContext.beginPath();
-    offscreenContext.moveTo(filteredPoints[0].x, filteredPoints[0].y);
+    originalImageOffscreenContext.beginPath();
+    originalImageOffscreenContext.moveTo(filteredPoints[0].x, filteredPoints[0].y);
 
     for(const point of filteredPoints) {
-      offscreenContext.lineTo(point.x, point.y);
+      originalImageOffscreenContext.lineTo(point.x, point.y);
     }
 
-    offscreenContext.stroke();
+    originalImageOffscreenContext.stroke();
   }
 
   function drawByNeon(event: MouseEvent): void {
@@ -152,14 +156,14 @@ export function useDrawing(params: UseDrawingParams) {
 
     const {x, y} = getCoordinates(event);
 
-    offscreenContext.lineWidth = drawingOptions.brushSize;
-    offscreenContext.lineCap = 'round';
-    offscreenContext.strokeStyle = '#ffffff';
+    originalImageOffscreenContext.lineWidth = drawingOptions.brushSize;
+    originalImageOffscreenContext.lineCap = 'round';
+    originalImageOffscreenContext.strokeStyle = '#ffffff';
 
-    offscreenContext.lineJoin = 'round';
+    originalImageOffscreenContext.lineJoin = 'round';
 
-    offscreenContext.shadowColor = `rgba(${hexToRgb(drawingOptions.color)}, 0.3)`;
-    offscreenContext.shadowBlur = drawingOptions.brushSize;
+    originalImageOffscreenContext.shadowColor = `rgba(${hexToRgb(drawingOptions.color)}, 0.3)`;
+    originalImageOffscreenContext.shadowBlur = drawingOptions.brushSize;
 
     drawingOptions.points.push({
       x,
@@ -169,17 +173,17 @@ export function useDrawing(params: UseDrawingParams) {
     const epsilon = 2;
     const filteredPoints = ramerDouglasPeucker(drawingOptions.points, epsilon);
 
-    offscreenContext.beginPath();
-    offscreenContext.moveTo(filteredPoints[0].x, filteredPoints[0].y);
+    originalImageOffscreenContext.beginPath();
+    originalImageOffscreenContext.moveTo(filteredPoints[0].x, filteredPoints[0].y);
 
     for(const point of filteredPoints) {
-      offscreenContext.lineTo(point.x, point.y);
+      originalImageOffscreenContext.lineTo(point.x, point.y);
     }
 
-    offscreenContext.stroke();
+    originalImageOffscreenContext.stroke();
 
-    offscreenContext.shadowBlur = 0;
-    offscreenContext.shadowColor = 'transparent';
+    originalImageOffscreenContext.shadowBlur = 0;
+    originalImageOffscreenContext.shadowColor = 'transparent';
   }
 
   function drawByBlur(event: MouseEvent): void {
@@ -189,34 +193,31 @@ export function useDrawing(params: UseDrawingParams) {
 
     const {x, y} = getCoordinates(event);
 
-    offscreenContext.lineWidth = drawingOptions.brushSize;
-    offscreenContext.lineCap = 'round';
+    originalImageOffscreenContext.lineWidth = drawingOptions.brushSize;
+    originalImageOffscreenContext.lineCap = 'round';
 
-    offscreenContext.strokeStyle = offscreenContext.createPattern(blurredCanvas, 'no-repeat') as CanvasPattern;
-    offscreenContext.lineTo(x, y);
-    offscreenContext.stroke();
-    offscreenContext.beginPath();
-    offscreenContext.moveTo(x, y);
+    originalImageOffscreenContext.strokeStyle = originalImageOffscreenContext.createPattern(blurredCanvas, 'no-repeat') as CanvasPattern;
+    originalImageOffscreenContext.lineTo(x, y);
+    originalImageOffscreenContext.stroke();
+    originalImageOffscreenContext.beginPath();
+    originalImageOffscreenContext.moveTo(x, y);
   }
 
   function drawByEraser(event: MouseEvent): void {
-    if(!drawingOptions.isDrawing) {
+    if(!drawingOptions.isDrawing || erasingCanvas === null) {
       return;
     }
 
     const {x, y} = getCoordinates(event);
 
-    offscreenContext.globalCompositeOperation = 'destination-out';
-    offscreenContext.lineWidth = drawingOptions.brushSize;
-    offscreenContext.lineCap = 'round';
+    originalImageOffscreenContext.lineWidth = drawingOptions.brushSize;
+    originalImageOffscreenContext.lineCap = 'round';
 
-    offscreenContext.lineTo(x, y);
-    offscreenContext.stroke();
-    offscreenContext.beginPath();
-    offscreenContext.moveTo(x, y);
-    offscreenContext.closePath();
-
-    offscreenContext.globalCompositeOperation = 'source-over';
+    originalImageOffscreenContext.strokeStyle = originalImageOffscreenContext.createPattern(erasingCanvas, 'no-repeat') as CanvasPattern;
+    originalImageOffscreenContext.lineTo(x, y);
+    originalImageOffscreenContext.stroke();
+    originalImageOffscreenContext.beginPath();
+    originalImageOffscreenContext.moveTo(x, y);
   }
 
   function draw(event: MouseEvent): void {
@@ -262,26 +263,44 @@ export function useDrawing(params: UseDrawingParams) {
       throw new Error('Could not get context for blurred canvas');
     }
 
-    bCanvas.width = offscreenCanvas.width;
-    bCanvas.height = offscreenCanvas.height;
+    bCanvas.width = originalImageOffscreenCanvas.width;
+    bCanvas.height = originalImageOffscreenCanvas.height;
 
     bContext.putImageData(blurredImageData, 0, 0);
 
     blurredCanvas = bCanvas;
   }
 
+  function prepareErasingCanvas(orignImageData: ImageData): void {
+    const eCanvas = document.createElement('canvas');
+    const eContext = eCanvas.getContext('2d');
+
+    if(eContext === null) {
+      throw new Error('Could not get context for blurred canvas');
+    }
+
+    eCanvas.width = originalImageOffscreenCanvas.width;
+    eCanvas.height = originalImageOffscreenCanvas.height;
+
+    eContext.putImageData(orignImageData, 0, 0);
+
+    erasingCanvas = eCanvas;
+  }
+
   function beginDraw(event: MouseEvent): void {
-    if(offscreenContext === null) {
+    if(originalImageOffscreenContext === null) {
       throw new Error('Offscreen context is not initialized');
     }
 
     drawingOptions.isDrawing = true;
 
-    offscreenContext.beginPath();
+    // layer.save();
+
+    originalImageOffscreenContext.beginPath();
 
     const {x, y} = getCoordinates(event);
 
-    offscreenContext.moveTo(x, y);
+    originalImageOffscreenContext.moveTo(x, y);
   }
 
   function endDrawDefault(): void {
@@ -328,11 +347,11 @@ export function useDrawing(params: UseDrawingParams) {
       y: lastPoint.y - arrowLength * Math.sin(perpendicularAngle2)
     };
 
-    offscreenContext.lineWidth = drawingOptions.brushSize;
+    originalImageOffscreenContext.lineWidth = drawingOptions.brushSize;
 
-    const savedImageData = offscreenContext.getImageData(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+    const savedImageData = originalImageOffscreenContext.getImageData(0, 0, originalImageOffscreenCanvas.width, originalImageOffscreenCanvas.height);
 
-    offscreenContext.globalCompositeOperation = 'source-over';
+    originalImageOffscreenContext.globalCompositeOperation = 'source-over';
 
     const easing = cubicBezier(0.72, 0.46, 0.26, 1.04);
     const animationDuration = 300;
@@ -354,14 +373,14 @@ export function useDrawing(params: UseDrawingParams) {
         y: lastPoint.y + easedT * (arrowPoint2.y - lastPoint.y)
       };
 
-      offscreenContext.putImageData(savedImageData, 0, 0);
+      originalImageOffscreenContext.putImageData(savedImageData, 0, 0);
 
-      offscreenContext.beginPath();
-      offscreenContext.moveTo(lastPoint.x, lastPoint.y);
-      offscreenContext.lineTo(currentArrowPoint1.x, currentArrowPoint1.y);
-      offscreenContext.moveTo(lastPoint.x, lastPoint.y);
-      offscreenContext.lineTo(currentArrowPoint2.x, currentArrowPoint2.y);
-      offscreenContext.stroke();
+      originalImageOffscreenContext.beginPath();
+      originalImageOffscreenContext.moveTo(lastPoint.x, lastPoint.y);
+      originalImageOffscreenContext.lineTo(currentArrowPoint1.x, currentArrowPoint1.y);
+      originalImageOffscreenContext.moveTo(lastPoint.x, lastPoint.y);
+      originalImageOffscreenContext.lineTo(currentArrowPoint2.x, currentArrowPoint2.y);
+      originalImageOffscreenContext.stroke();
 
       params.onDraw();
 
@@ -379,8 +398,8 @@ export function useDrawing(params: UseDrawingParams) {
   function endDraw() {
     drawingOptions.isDrawing = false;
 
-    if(offscreenContext) {
-      offscreenContext.closePath();
+    if(originalImageOffscreenContext) {
+      originalImageOffscreenContext.closePath();
     }
 
     switch(drawingOptions.tool) {
@@ -415,7 +434,9 @@ export function useDrawing(params: UseDrawingParams) {
   }
 
   function setBrushSize(size: number): void {
-    drawingOptions.brushSize = size * 2;
+    const canvasRatio = visibleCanvas.width / originalImageOffscreenCanvas.width;
+
+    drawingOptions.brushSize = size * 2 / canvasRatio;
   }
 
   function setTool(tool: DrawingTool): void {
@@ -423,6 +444,8 @@ export function useDrawing(params: UseDrawingParams) {
   }
 
   function init(): void {
+    prepareErasingCanvas(imageData);
+
     worker = new Worker(new URL('./DrawingWorker.js', import.meta.url));
 
     visibleCanvas.addEventListener('mousedown', drawMouseDown);
