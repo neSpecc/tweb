@@ -24,10 +24,10 @@ import Scrollable from '../scrollable';
  * Now working
  *
  * @todo add undo/redo
- * @todo stickers search, tabbing
  *
  * Critical bugs
  * - erase tool not working
+ * @todo text bold settings is not applied
  *
  * Working but not ideal
  *
@@ -35,13 +35,8 @@ import Scrollable from '../scrollable';
  * @todo second rotate90 decreases width
  * @todo fix hightlighs and shadows filters
  * @todo fix erasing effect of the Blur Brush
- * @todo long text wrapping
- * @todo text bold settings is not applied
- * @todo don't confirm hiding on save
- * @todo rotate crop ratio icons
  * @todo snell roundhand font lays out on left side incorrectly
  * @todo i18n
- * @todo wrong shape on rotate text
  * @todo long horizontal image shrinks layout
  * @todo use passive event listeners where possible
  *
@@ -186,17 +181,12 @@ function MediaEditor(params: {
     const maxWidth = Math.min(leftZoneRect.width, originalImage()!.width);
     const maxHeight = Math.min(commonHeight - minMargin, originalImage()!.height);
 
-    if(originalImage()!.width > originalImage()!.height) {
-      if(newWidth > maxWidth) {
-        newWidth = maxWidth;
-        newHeight = newWidth / aspectRatio;
-      }
-    }
-    else {
-      if(newHeight > maxHeight) {
-        newHeight = maxHeight;
-        newWidth = newHeight * aspectRatio;
-      }
+    if(newWidth > maxWidth) {
+      newWidth = maxWidth;
+      newHeight = newWidth / aspectRatio;
+    } else if(newHeight > maxHeight) {
+      newHeight = maxHeight;
+      newWidth = newHeight * aspectRatio;
     }
 
     let topOffset = (newLeftZonePhotoHolderHeight + leftZoneControlsRect.height - newHeight) / 2;
@@ -207,11 +197,11 @@ function MediaEditor(params: {
 
     if(isAnimated) {
       animateResizeCanvasWrapper(newWidth, newHeight, topOffset);
-    }
-    else {
+    } else {
       resizeCanvasWrapper(newWidth, newHeight, topOffset);
     }
   }
+
 
   function onImageLoad(image: HTMLImageElement) {
     setOriginalImage(image);

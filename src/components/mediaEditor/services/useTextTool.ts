@@ -137,7 +137,7 @@ export function useTextTool(params: UseTextToolParams) {
     // const existingDots = box.el.querySelectorAll('.dot');
     // existingDots.forEach(dot => dot.remove());
 
-    const textBoxLines = textarea.querySelectorAll('.text-box__line');
+    const textBoxLines = textarea.querySelectorAll('.text-box__line') as NodeListOf<HTMLDivElement>;
     if(textBoxLines.length === 0) {
       console.error('No elements found with class .text-box__line');
       return;
@@ -149,13 +149,9 @@ export function useTextTool(params: UseTextToolParams) {
 
     let pathData = '';
 
-    const textareaRect = textarea.getBoundingClientRect();
-
     const padX = boxState.fontSize / 4;
     const padY = boxState.fontSize / 8;
     const radius = boxState.fontSize / 2.2;
-    // const radius = boxState.fontSize > 30 ? 16 : boxState.fontSize / 1.5;
-    // const radius = 16;
 
     // function dot(x: number, y: number, color = 'white'): string {
     //   const dot = document.createElement('div');
@@ -176,10 +172,17 @@ export function useTextTool(params: UseTextToolParams) {
     //   return '';
     // }
 
+    let originalTransform;
+
+    if(box.position.rotationAngle !== 0) {
+      originalTransform = box.el.style.transform;
+      box.el.style.transform = 'none';
+    }
+
     const lines = Array.from(textBoxLines).map((line) => {
       const rect = line.getBoundingClientRect();
-      const left = rect.left - textareaRect.left;
-      const top = rect.top - textareaRect.top;
+      const left = line.offsetLeft;
+      const top = line.offsetTop;
       const right = left + rect.width;
       const bottom = top + rect.height;
       const width = rect.width;
@@ -194,6 +197,10 @@ export function useTextTool(params: UseTextToolParams) {
         height
       };
     });
+
+    if(box.position.rotationAngle !== 0) {
+      box.el.style.transform = originalTransform;
+    }
 
     function traverseFromTopToBottom(lineIndex: number): string {
       let result = '';
@@ -315,12 +322,12 @@ export function useTextTool(params: UseTextToolParams) {
     /**
      * Begin at top+radius and turn bottom to start traversing from top to bottom
      */
-    // dot(firstLine.left + radius - padX, firstLine.top - padY);
+    // dot(firstLine.left + radius - padX, firstLine.top - padY, 'red');
     pathData += `M${firstLine.left + radius - padX},${firstLine.top - padY}`; // Move to the starting point with radius offset
-    // dot(firstLine.right + padX - radius, firstLine.top - padY);
+    // dot(firstLine.right + padX - radius, firstLine.top - padY, 'red');
     pathData += `L${firstLine.right + padX - radius},${firstLine.top - padY}`;
-    // dot(firstLine.right + padX, firstLine.top - padY);
-    // dot(firstLine.right + padX, firstLine.top - padY + radius);
+    // dot(firstLine.right + padX, firstLine.top - padY, 'red');
+    // dot(firstLine.right + padX, firstLine.top - padY + radius, 'red');
     pathData += `Q${firstLine.right + padX},${firstLine.top - padY} ${firstLine.right + padX},${firstLine.top - padY + radius}`; // Top-right corner rounded
 
     while(curIndex < lines.length) {
@@ -352,10 +359,10 @@ export function useTextTool(params: UseTextToolParams) {
     }
 
     pathData += `L${firstLine.left - padX},${firstLine.top - padY + radius}`;
-    // dot(firstLine.left - padX, firstLine.top - padY + radius);
+    // dot(firstLine.left - padX, firstLine.top - padY + radius, 'red');
     pathData += `Q${firstLine.left - padX},${firstLine.top - padY} ${firstLine.left - padX + radius},${firstLine.top - padY}`;
-    // dot(firstLine.left - padX, firstLine.top - padY);
-    // dot(firstLine.left - padX + radius, firstLine.top - padY);
+    // dot(firstLine.left - padX, firstLine.top - padY, 'blue');
+    // dot(firstLine.left - padX + radius, firstLine.top - padY, 'green');
     pathData += `Z`;
 
     const path = document.createElementNS(svgNS, 'path');
@@ -438,7 +445,23 @@ export function useTextTool(params: UseTextToolParams) {
     });
 
     textarea.addEventListener('input', () => {
-      // wrapTextInBackgroundSpan(textarea);
+      const selection = window.getSelection();
+      const range = selection?.getRangeAt(0);
+
+      if(!range) {
+        return;
+      }
+
+      const currentLine = range.startContainer.parentElement;
+      const currentLineRight = box.position.x + currentLine.getBoundingClientRect().width;
+      const layerRight = params.layer.div.offsetWidth;
+      const treshold = 50;
+
+      if(currentLineRight + treshold > layerRight) {
+        insertLineWrapper(textarea);
+        focusEditableDiv(textarea);
+      }
+
       box.adjustWidth();
       drawSvgShape(box);
     });
