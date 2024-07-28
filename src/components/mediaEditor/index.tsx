@@ -20,8 +20,6 @@ import {i18n} from '../../lib/langPack';
 
 
 /**
- *
- * @todo add undo/redo for drawing
  * @todo add undo/redo for crop
  * @todo add undo/redo for resize
  * @todo add undo/redo for adding text
@@ -33,6 +31,7 @@ import {i18n} from '../../lib/langPack';
  * @todo fix hightlighs and shadows filters
  * @todo fix erasing effect of the Blur Brush
  * @todo use passive event listeners where possible
+ * @todo store drawign Tools icons in asssets
  *
  */
 function MediaEditor(params: {

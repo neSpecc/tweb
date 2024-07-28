@@ -32,13 +32,11 @@ export default function Brush(props: BrushProps) {
     const layer = props.layerMaganer().getBaseCanvasLayer();
 
     const drawingService = useDrawing({
+      layerManager: props.layerMaganer(),
       originalImageOffscreenCanvas: layer.originalImageOffscreenCanvas,
       originalImageOffscreenContext: layer.originalImageOffscreenContext,
       imageData: layer.imageData,
-      visibleCanvas: layer.visibleCanvas,
-      onDraw() {
-        layer.sync();
-      }
+      visibleCanvas: layer.visibleCanvas
     });
 
     setDrawing(drawingService);

@@ -1,17 +1,19 @@
 import {hexToRgb} from '../utils/hex-to-rgb';
 import {ramerDouglasPeucker} from '../utils/ramer-douglas-peucker';
 import {cubicBezier} from '../utils/timing-functions';
+import DrawCommand from './commands/DrawCommand';
+import type {useCanvasLayers} from './useCanvasLayers';
 
 export type DrawingTool = 'pen' | 'brush' | 'arrow' | 'neon' | 'blur' | 'eraser';
 
 interface Point { x: number; y: number }
 
 interface UseDrawingParams {
+  layerManager: ReturnType<typeof useCanvasLayers>;
   originalImageOffscreenCanvas: OffscreenCanvas
   originalImageOffscreenContext: OffscreenCanvasRenderingContext2D | null;
   imageData: ImageData;
   visibleCanvas: HTMLCanvasElement;
-  onDraw: () => void;
 }
 
 export function useDrawing(params: UseDrawingParams) {
@@ -284,7 +286,9 @@ export function useDrawing(params: UseDrawingParams) {
         break;
     }
 
-    params.onDraw();
+    const imageData = originalImageOffscreenContext!.getImageData(0, 0, originalImageOffscreenCanvas.width, originalImageOffscreenCanvas.height);
+    const layer = params.layerManager.getBaseCanvasLayer();
+    params.layerManager.commands.execute(new DrawCommand(layer, imageData))
   }
 
   function prepareBlurCanvas(blurredImageData: ImageData): void {
@@ -326,7 +330,7 @@ export function useDrawing(params: UseDrawingParams) {
 
     drawingOptions.isDrawing = true;
 
-    // layer.save();
+    params.layerManager.commands.startBatch();
 
     originalImageOffscreenContext.beginPath();
 
@@ -336,7 +340,7 @@ export function useDrawing(params: UseDrawingParams) {
   }
 
   function endDrawDefault(): void {
-
+    params.layerManager.commands.endBatch();
   }
 
   function endDrawArrow(): void {
@@ -414,13 +418,16 @@ export function useDrawing(params: UseDrawingParams) {
       originalImageOffscreenContext.lineTo(currentArrowPoint2.x, currentArrowPoint2.y);
       originalImageOffscreenContext.stroke();
 
-      params.onDraw();
-
       if(t < 1) {
+        params.layerManager.commands.execute(new DrawCommand(
+          params.layerManager.getBaseCanvasLayer(),
+          originalImageOffscreenContext.getImageData(0, 0, originalImageOffscreenCanvas.width, originalImageOffscreenCanvas.height)
+        ));
         requestAnimationFrame(animateArrow);
       }
       else {
         drawingOptions.isAnimating = false;
+        params.layerManager.commands.endBatch();
       }
     }
 
@@ -442,8 +449,6 @@ export function useDrawing(params: UseDrawingParams) {
         endDrawDefault();
         break;
     }
-
-    params.onDraw();
 
     drawingOptions.points = [];
   }
