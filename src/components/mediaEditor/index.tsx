@@ -20,21 +20,18 @@ import {i18n} from '../../lib/langPack';
 
 
 /**
- * Now working
  *
- * @todo add undo/redo
+ * @todo add undo/redo for drawing
+ * @todo add undo/redo for crop
+ * @todo add undo/redo for resize
+ * @todo add undo/redo for adding text
+ * @todo add undo/redo for adding stickers
  *
- * Critical bugs
- * - erase tool not working
- * @todo text bold settings is not applied
  *
- * Working but not ideal
  *
- * @todo delete active draggable box by delete (if caret is not set)
  * @todo second rotate90 decreases width
  * @todo fix hightlighs and shadows filters
  * @todo fix erasing effect of the Blur Brush
- * @todo snell roundhand font lays out on left side incorrectly
  * @todo use passive event listeners where possible
  *
  */

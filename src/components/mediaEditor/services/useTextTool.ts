@@ -641,6 +641,11 @@ export function useTextTool(params: UseTextToolParams) {
     textarea.style.fontFamily = fontFamily;
     textarea.style.fontWeight = toBeBold.includes(fontFamily) ? 'bold' : 'normal';
 
+    /**
+     * Workaround for SnellRoundhand font alignment
+     */
+    textarea.classList.toggle('snell-roundhand', fontFamily === 'SnellRoundhand');
+
     updateBoxParam(box, {
       font: fontFamily
     });
