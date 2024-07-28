@@ -17,6 +17,7 @@ import {ButtonIconTsx} from '../buttonIconTsx';
 import canvasToFile from '../../helpers/canvas/canvasToFile';
 import ButtonCorner from '../buttonCorner';
 import {attachClickEvent} from '../../helpers/dom/clickEvent';
+import Scrollable from '../scrollable';
 
 
 /**
@@ -173,16 +174,17 @@ function MediaEditor(params: {
     const width = layer!.originalImageOffscreenCanvas.width;
     const height = layer!.originalImageOffscreenCanvas.height;
 
+    const commonHeight = document.querySelector('.media-editor')!.clientHeight;
     const leftZoneRect = leftZonePhotoholder.getBoundingClientRect();
     const leftZoneControlsRect = leftZoneControls.element.getBoundingClientRect();
-    const newLeftZonePhotoHolderHeight = leftZoneRect.height - minMargin - leftZoneControlsRect.height;
+    const newLeftZonePhotoHolderHeight = commonHeight - minMargin - leftZoneControlsRect.height;
     const aspectRatio = width / height;
 
     let newWidth = newLeftZonePhotoHolderHeight * aspectRatio;
     let newHeight = newWidth / aspectRatio;
 
     const maxWidth = Math.min(leftZoneRect.width, originalImage()!.width);
-    const maxHeight = Math.min(leftZoneRect.height - minMargin, originalImage()!.height);
+    const maxHeight = Math.min(commonHeight - minMargin, originalImage()!.height);
 
     if(originalImage()!.width > originalImage()!.height) {
       if(newWidth > maxWidth) {
@@ -231,7 +233,6 @@ function MediaEditor(params: {
       image
     });
     resizeCanvasWrapperToParent(
-
       tab() === 1 ? cropModeMargins : 0,
       tab() === 1
     );
@@ -325,6 +326,50 @@ function MediaEditor(params: {
     return button;
   }
 
+  function createSettingsBody(): HTMLElement {
+    const el = (
+      <div class="media-editor-settings">
+        <div class="media-editor-settings-inner">
+          <Switch>
+            <Match when={tab() === 0}>
+              <Enhance
+                layerMaganer={layerManager as () => ReturnType<typeof useCanvasLayers>}
+              />
+            </Match>
+            <Match when={tab() === 1}>
+              <Crop
+                layerMaganer={layerManager as () => ReturnType<typeof useCanvasLayers>}
+                leftZoneControls={leftZoneControls}
+                resizeCanvasWrapper={resizeCanvasWrapper}
+                animateResizeCanvasWrapper={animateResizeCanvasWrapper}
+                resizeCanvasWrapperToParent={resizeCanvasWrapperToParent}
+              />
+            </Match>
+            <Match when={tab() === 2}>
+              <TextTool
+                layerMaganer={layerManager as () => ReturnType<typeof useCanvasLayers>}
+              />
+            </Match>
+            <Match when={tab() === 3}>
+              <Draw
+                layerMaganer={layerManager as () => ReturnType<typeof useCanvasLayers>}
+              />
+            </Match>
+            <Match when={tab() === 4}>
+              <Stickers
+                layerMaganer={layerManager as () => ReturnType<typeof useCanvasLayers>}
+              />
+            </Match>
+          </Switch>
+        </div>
+      </div>
+    )
+
+    const scrollable = new Scrollable(el as HTMLElement);
+
+    return scrollable.container;
+  }
+
   return (
     <>
       <div class="media-editor">
@@ -384,39 +429,7 @@ function MediaEditor(params: {
             </div>
 
           </div>
-          <div class="media-editor-settings">
-            <Switch>
-              <Match when={tab() === 0}>
-                <Enhance
-                  layerMaganer={layerManager as () => ReturnType<typeof useCanvasLayers>}
-                />
-              </Match>
-              <Match when={tab() === 1}>
-                <Crop
-                  layerMaganer={layerManager as () => ReturnType<typeof useCanvasLayers>}
-                  leftZoneControls={leftZoneControls}
-                  resizeCanvasWrapper={resizeCanvasWrapper}
-                  animateResizeCanvasWrapper={animateResizeCanvasWrapper}
-                  resizeCanvasWrapperToParent={resizeCanvasWrapperToParent}
-                />
-              </Match>
-              <Match when={tab() === 2}>
-                <TextTool
-                  layerMaganer={layerManager as () => ReturnType<typeof useCanvasLayers>}
-                />
-              </Match>
-              <Match when={tab() === 3}>
-                <Draw
-                  layerMaganer={layerManager as () => ReturnType<typeof useCanvasLayers>}
-                />
-              </Match>
-              <Match when={tab() === 4}>
-                <Stickers
-                  layerMaganer={layerManager as () => ReturnType<typeof useCanvasLayers>}
-                />
-              </Match>
-            </Switch>
-          </div>
+          { createSettingsBody() }
         </div>
         { createSaveButton() }
       </div>

@@ -12,7 +12,7 @@
   display: grid;
   grid-template-columns: auto 400px;
   width: 100%;
-  height: 100vh;
+  height: 100%;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
@@ -25,17 +25,22 @@
   --color-secondary: #aaa;
   --color-primary: #fff;
   --color-value: var(--primary-color);
-  /* --color-section-header: #717579; */
+  --color-secondary-new: #717579;
   --color-section-header: #AAAAAA;
 
   .btn-corner {
     right: 16px;
-    bottom: 76px;
+    bottom: 16px;
     transform: none;
   }
 
   .layers-parent {
     
+  }
+
+  .visible-canvas {
+    margin: 0;
+    vertical-align: bottom;
   }
 }
 
@@ -190,7 +195,6 @@
 .media-editor-settings {
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
 
   & > div {
     animation: tab-in 0.3s ease-in;
@@ -736,7 +740,7 @@ html.no-touch .draggable-box .super-sticker:hover {
     }
 
     &-selected &-glow {
-      animation: color-selected 0.2s cubic-bezier(.44,1.05,.43,1.12) forwards;
+      animation: color-selected 0.15s cubic-bezier(.44,1.05,.43,1.12) forwards;
     }
   }
 
@@ -819,6 +823,10 @@ html.no-touch .draggable-box .super-sticker:hover {
   gap: 10px;
   padding: 16px 8px;
   padding-bottom: 100px;
+
+  &-small-pad {
+    padding: 8px;
+  }
 
   &-gapper {
     gap: 16px;
@@ -977,8 +985,35 @@ html.no-touch .draggable-box .super-sticker:hover {
 }
 
 .pe-stickers-packs {
-  display: flex;
-  overflow: scroll;
+  
+  height: 48px;
+  margin-top: 0;
+  transition: height 0.18s, margin-top 0.18s, opacity 0.1s;
+  overflow: hidden;
+
+  &-scrollable-inner {
+    display: flex;
+    width: 100%;
+    padding: 9px 10px;
+    gap: 16px;
+
+    .btn-icon, 
+    video,
+    .grid-item
+    {
+      position: relative;
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+    }
+  }
+
+  &--collapsed {
+    overflow: hidden;
+    height: 0;
+    margin-top: -10px;
+    opacity: 0;
+  }
 }
 
 .pe-stickers-packs-scrollable {
@@ -1012,11 +1047,13 @@ html.no-touch .draggable-box .super-sticker:hover {
   display: flex;
   align-items: center;
   color: var(--color-secondary);
-  padding: 9px 16px;
-  gap: 6px;
 
   .scrollable {
     position: absolute;
+  }
+
+  .input-search-placeholder {
+    color: var(--color-secondary-new);
   }
 }
 

@@ -17,6 +17,7 @@ import {DraggableBox} from '../services/useDraggableBox';
 import EmoticonsSearch from '../../emoticonsDropdown/search';
 import {i18n} from '../../../lib/langPack';
 import {attachClickEvent} from '../../../helpers/dom/clickEvent';
+import {ScrollableX} from '../../scrollable';
 
 interface StickersProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
@@ -79,8 +80,6 @@ export default function Stickers(props: StickersProps) {
 
   async function loadAllStickers() {
     const all = await rootScope.managers.appStickersManager.getAllStickers();
-
-    console.log('all', all);
 
     all.sets.forEach(async(set) => {
       const setData = await rootScope.managers.appStickersManager.getStickerSet(set);
@@ -209,18 +208,40 @@ export default function Stickers(props: StickersProps) {
     setSelectedGroupStickers(documents);
   }
 
+  function createPackTabs() {
+    const scollableInner = (
+      <div class="pe-stickers-packs-scrollable-inner">
+        <span onClick={() => scrollToSet('recent')}>
+          { ButtonIcon('clock_stroked') }
+        </span>
+        <For each={sets()}>
+          {(set) => (
+            set.id !== 'recent' && renderTab(set)
+          )}
+        </For>
+      </div>
+    )
+    const el = (
+      <div class="pe-stickers-packs-scrollable">
+        { scollableInner }
+      </div>
+    )
+
+    const scrollable = new ScrollableX(el as HTMLElement);
+
+    return scrollable.container;
+  }
+
   return (
-    <div class="pe-settings">
+    <div class="pe-settings pe-settings-small-pad">
       <div class="pe-settings__tool pe-stickers">
-        <div class="pe-stickers-packs">
-          <div class="pe-stickers-packs-scrollable">
-            {ButtonIcon('clock_stroked')}
-            <For each={sets()}>
-              {(set) => (
-                renderTab(set)
-              )}
-            </For>
-          </div>
+        <div
+          classList={{
+            'pe-stickers-packs': true,
+            'pe-stickers-packs--collapsed': isSearchPerformed()
+          }}
+        >
+          { createPackTabs() }
         </div>
 
         <div class="pe-stickers-search">
@@ -230,9 +251,6 @@ export default function Stickers(props: StickersProps) {
               placeholder: 'SearchStickers',
               loading,
               onValue: searchFetcher,
-              onFocusChange: (focus) => {
-                console.log('focus', focus);
-              },
               onGroup: groupFetcher
             })
           }
