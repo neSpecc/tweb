@@ -6,6 +6,7 @@ import {type DraggableBox, type DraggableBoxCreationAttributes, useDraggableBox}
 import {type CanvasFilters, useFilters} from './useFilters';
 import CommandManager from './CommandManager';
 import SaveLayerCommand from './commands/SaveLayerCommand';
+import CropCommand from './commands/CropCommand';
 
 interface UseCanvasLayersParams {
   wrapperEl: HTMLElement;
@@ -14,12 +15,6 @@ interface UseCanvasLayersParams {
 
 export interface CanvasLayerState {
   rotation: number;
-  crop: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
   filters: CanvasFilters;
 }
 
@@ -40,8 +35,7 @@ export interface CanvasLayer extends LayerBase {
   rotate: (angle: number) => void;
   rotate90: () => void;
   flip: () => void;
-  crop: (x: number, y: number, width: number, height: number) => void;
-  restoreState: () => void;
+  crop: (params: CropParams) => void;
   applyFilter: (filterName: keyof CanvasFilters, value: number) => void;
   sync: () => void;
   setImageData: (imageData: ImageData) => void;
@@ -74,11 +68,36 @@ export interface LayerCreationParams {
 }
 
 export interface CommandsService {
-  execute: (command: Command) => void;
+  execute: (command: Command, skipHistory?: boolean) => void;
   startBatch: () => void;
   endBatch: () => void;
   undo: () => void;
   redo: () => void;
+}
+
+export interface CropParams {
+  imageDimensions: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+
+  newCanvasDimensions: {
+    newCanvasWidth: number;
+    newCanvasHeight: number;
+    offsetTop: number;
+  };
+
+  currentCanvasDimensions: {
+    newCanvasWidth: number;
+    newCanvasHeight: number;
+    offsetTop: number;
+  };
+
+  onBeforeCrop?: () => void;
+
+  uiReflector: (newWidth: number, newHeight: number, newOffsetTop: number) => void;
 }
 
 export function useCanvasLayers(params?: UseCanvasLayersParams) {
@@ -90,8 +109,8 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
   const commandManager = new CommandManager();
 
   const commands: CommandsService = {
-    execute(command: Command) {
-      commandManager.executeCommand(command);
+    execute(command: Command, skipHistory = false) {
+      commandManager.executeCommand(command, skipHistory);
       onAfterHistoryChange();
     },
     startBatch() {
@@ -267,13 +286,12 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     syncVisibleCanvas(layer);
   }
 
-  function saveLayer(layer: CanvasLayer): void {
+  function saveLayer(layer: CanvasLayer, skipHistory = false): void {
     const canvas = layer.originalImageOffscreenCanvas;
     const context = layer.originalImageOffscreenContext;
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
-    // layer.imageData = imageData;
-    commands.execute(new SaveLayerCommand(layer, imageData));
+    commands.execute(new SaveLayerCommand(layer, imageData), skipHistory);
   }
 
   function flipCanvasLayerContent(layer: CanvasLayer): void {
@@ -314,70 +332,40 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
     saveLayer(layer);
   }
 
-  function cropCanvas(layer: CanvasLayer, x: number, y: number, width: number, height: number): void {
-    layer.save();
-    layer.state.crop = {x, y, width, height};
+  function cropCanvas(params: CropParams): void {
+    const layer = getBaseCanvasLayer();
+    // layer.save();
 
-    restoreCrop(layer);
-  }
-
-  function restoreCrop(layer: CanvasLayer): void {
     const {
       originalImageOffscreenCanvas,
-      originalImageOffscreenContext,
       visibleCanvas
     } = layer;
 
-    const {x, y, width, height} = layer.state.crop;
+    const {x, y, width, height} = params.imageDimensions;
 
     const scaleX = originalImageOffscreenCanvas.width / visibleCanvas.width;
     const scaleY = originalImageOffscreenCanvas.height / visibleCanvas.height;
 
-    const cropX = x * scaleX;
-    const cropY = y * scaleY;
-    const cropWidth = width * scaleX;
-    const cropHeight = height * scaleY;
-
-    const croppedCanvas = document.createElement('canvas');
-    croppedCanvas.width = cropWidth;
-    croppedCanvas.height = cropHeight;
-    const croppedContext = croppedCanvas.getContext('2d');
-
-    if(!croppedContext) {
-      throw new Error('Failed to crop: Could not get temporary context');
-    }
-
-    croppedContext.drawImage(
-      originalImageOffscreenCanvas,
-      cropX,
-      cropY,
-      cropWidth,
-      cropHeight,
-      0,
-      0,
-      cropWidth,
-      cropHeight
-    );
-
-    originalImageOffscreenCanvas.width = cropWidth;
-    originalImageOffscreenCanvas.height = cropHeight;
-    originalImageOffscreenContext.clearRect(0, 0, cropWidth, cropHeight);
-    originalImageOffscreenContext.drawImage(croppedCanvas, 0, 0);
-
-    syncVisibleCanvas(layer);
-
-    saveLayer(layer);
-  }
-
-  function restoreState(layer: CanvasLayer): void {
-    if(layer.state.rotation !== 0) {
-      rotateCanvasLayerContent(layer, layer.state.rotation);
-    }
-
-    if(layer.state.crop.width !== 0 && layer.state.crop.height !== 0) {
-      restoreCrop(layer);
-    }
-  }
+    commands.execute(
+      new CropCommand(
+        layer,
+        {
+          x,
+          y,
+          width,
+          height
+        },
+        params.newCanvasDimensions,
+        params.currentCanvasDimensions,
+        {
+          scaleX,
+          scaleY
+        },
+        params.uiReflector,
+        params.onBeforeCrop
+      )
+    )
+  };
 
   function applyCanvasFilter(layer: CanvasLayer, filterName: keyof CanvasFilters, value: number): void {
     const filtersToAdd = Object.fromEntries(Object.entries(layer.state.filters).filter(([_name, value]) => {
@@ -453,12 +441,6 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
       creationParams: params,
       state: {
         rotation: 0,
-        crop: {
-          x: 0,
-          y: 0,
-          width: 0,
-          height: 0
-        },
         filters: {
           enhance: 0,
           brightness: 0,
@@ -488,12 +470,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
       flip: (): void => {
         flipCanvasLayerContent(layer);
       },
-      crop: (x: number, y: number, width: number, height: number): void => {
-        cropCanvas(layer, x, y, width, height);
-      },
-      restoreState: (): void => {
-        restoreState(layer);
-      },
+      crop: cropCanvas,
       applyFilter: (filterName: keyof CanvasFilters, value: number): void => {
         applyCanvasFilter(layer, filterName, value);
       },
@@ -637,8 +614,14 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
         layer.boxes.forEach((box) => {
           box.remove();
         });
-        layersParent.removeChild(div);
-        layers.delete(layer);
+
+        if(layersParent.contains(div)) {
+          layersParent.removeChild(div);
+        }
+
+        if(layers.has(layer)) {
+          layers.delete(layer);
+        }
       },
       createBox: (params: DraggableBoxCreationAttributes): DraggableBox => {
         return createDraggableBox({

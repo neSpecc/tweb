@@ -19,8 +19,12 @@ export default class CommandManager {
     }
   }
 
-  executeCommand(command: Command) {
+  executeCommand(command: Command, skipHistory = false) {
     command.execute();
+
+    if(skipHistory) {
+      return;
+    }
 
     if(this.currentBatch) {
       this.currentBatch.addCommand(command);

@@ -92,6 +92,7 @@ export interface DraggableBoxCreationAttributes {
   rotatable?: boolean;
   horizons?: boolean;
   preserveRatio?: boolean;
+  scaleHistory?: boolean;
   onBeforeResize?: () => void;
   onBeforeDrag?: () => void;
   onBeforeRotate?: () => void;
@@ -356,14 +357,16 @@ export function useDraggableBox(commands: CommandsService) {
       }
     }
 
-    commands.execute(new ScaleBoxCommand(
-      box,
-      adjusted.width,
-      adjusted.height,
-      adjusted.left,
-      adjusted.top,
-      scalingBox.box.creationAttributes.onResize
-    ));
+    if(!box.creationAttributes.scaleHistory) {
+      commands.execute(new ScaleBoxCommand(
+        box,
+        adjusted.width,
+        adjusted.height,
+        adjusted.left,
+        adjusted.top,
+        scalingBox.box.creationAttributes.onResize
+      ), box.creationAttributes.scaleHistory === false);
+    }
   }
 
   function drag(draggingBox: DraggingBoxData, event: MouseEvent) {
@@ -660,7 +663,9 @@ export function useDraggableBox(commands: CommandsService) {
   }
 
   function beginScale(box: DraggableBox, direction: DraggableBoxDirection, event: MouseEvent) {
-    commands.startBatch();
+    if(box.creationAttributes.scaleHistory !== false) {
+      commands.startBatch();
+    }
 
     box.creationAttributes.onBeforeResize?.();
 
@@ -701,7 +706,9 @@ export function useDraggableBox(commands: CommandsService) {
 
     box.creationAttributes.onAfterResize?.();
 
-    commands.endBatch();
+    if(box.creationAttributes.scaleHistory !== false) {
+      commands.endBatch();
+    }
   }
 
   function getRotationAngle(element: HTMLElement): number {

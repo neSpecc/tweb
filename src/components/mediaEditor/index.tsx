@@ -115,7 +115,8 @@ function MediaEditor(params: {
     initialHeight = canvasWrapper.offsetHeight,
     initialTop = canvasWrapper.offsetTop,
     duration = 350,
-    animateOpacity = false
+    animateOpacity = false,
+    onComplete?: () => void
   ): void {
     const startTime = performance.now();
 
@@ -146,6 +147,10 @@ function MediaEditor(params: {
 
       if(t < 1) {
         requestAnimationFrame(animate);
+      } else {
+        if(onComplete) {
+          onComplete();
+        }
       }
     }
 

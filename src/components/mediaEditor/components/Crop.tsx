@@ -6,6 +6,7 @@ import type {DraggableBox} from '../services/useDraggableBox';
 import Icon from '../../icon';
 import ripple from '../../ripple';
 import {i18n} from '../../../lib/langPack';
+import CropCommand from '../services/commands/CropCommand';
 
 interface CropProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
@@ -22,7 +23,8 @@ interface CropProps {
     initialHeight?: number,
     initialTop?: number,
     duration?: number,
-    animateOpacity?: boolean
+    animateOpacity?: boolean,
+    onComplete?: () => void
   ) => void;
 }
 
@@ -148,13 +150,6 @@ export default function Crop(props: CropProps) {
 
   onCleanup(() => {
     destroy();
-    const imageLayer = props.layerMaganer().getBaseCanvasLayer();
-
-    if(!imageLayer) {
-      return;
-    }
-
-    imageLayer.save();
   });
 
   function flip() {
@@ -291,6 +286,7 @@ export default function Crop(props: CropProps) {
       height,
       preserveRatio: aspectRatio() !== 'Free',
       style: 'solid',
+      scaleHistory: false,
       onResize(width, height, x, y) {
         updateCroppedZoneOverlay(width, height, box.position.x, box.position.y);
       },
@@ -348,9 +344,6 @@ export default function Crop(props: CropProps) {
 
       const layer = props.layerMaganer().getBaseCanvasLayer();
 
-      deinitCrop();
-      resetSliderPosition();
-
       /**
        * New canvas dimensions should respect aspect ratio and fit all available space except offset top
       */
@@ -369,37 +362,54 @@ export default function Crop(props: CropProps) {
 
       const offsetTopAfter = offsetTopBefore + (availabeHeight - newCanvasHeight) / 2;
 
-      const animationDuration = 600;
+      const canvasStyle = window.getComputedStyle(canvasWrapper);
+      const currentCanvasDimensions = {
+        newCanvasWidth: canvasStyle.width ? parseInt(canvasStyle.width) : canvasWrapper.offsetWidth,
+        newCanvasHeight: canvasStyle.height ? parseInt(canvasStyle.height) : canvasWrapper.offsetHeight,
+        offsetTop: canvasStyle.marginTop ? parseInt(canvasStyle.marginTop) : canvasWrapper.offsetTop
+      };
 
-      layer!.crop(x, y, width, height);
+      layer.crop({
+        imageDimensions: {
+          x, y, width, height
+        },
+        newCanvasDimensions: {
+          newCanvasWidth,
+          newCanvasHeight,
+          offsetTop: offsetTopAfter
+        },
+        currentCanvasDimensions,
+        onBeforeCrop: () => {
+          const isOnCropPage = document.querySelector('.pe-resizer__slider') !== null;
 
-      props.animateResizeCanvasWrapper(
-        newCanvasWidth,
-        newCanvasHeight,
-        offsetTopAfter,
-        [0.38, 0.45, 0.26, 1.06],
-        // [0.42, 0.16, 0.43, 1.15],
-        undefined,
-        newCanvasWidth * 0.96,
-        newCanvasHeight * 0.96,
-        offsetTopAfter,
-        animationDuration,
-        true // animate opacity
-      );
+          if(isOnCropPage) {
+            deinitCrop();
+            resetSliderPosition();
+          }
+        },
+        uiReflector: (newWidth: number, newHeight: number, newOffsetTop: number) => {
+          const isOnCropPage = document.querySelector('.pe-resizer__slider') !== null;
 
-      /**
-       * After rotation we will init it again
-       */
-      setTimeout(() => {
-        requestAnimationFrame(() => {
-          initCrop();
-          resolve();
-        });
-      }, animationDuration);
-
-      setCropChanged(false);
-
-      layer.save();
+          props.animateResizeCanvasWrapper(
+            newWidth,
+            newHeight,
+            newOffsetTop,
+            [0.38, 0.45, 0.26, 1.06],
+            undefined,
+            newWidth * 0.96,
+            newHeight * 0.96,
+            newOffsetTop,
+            600,
+            true, // animate opacity
+            () => {
+              if(isOnCropPage) {
+                initCrop();
+                setCropChanged(false);
+              }
+              resolve();
+            }
+          );
+        }});
     });
   }
 
