@@ -478,14 +478,6 @@ export function useTextTool(params: UseTextToolParams) {
       })
     })
 
-    textarea.addEventListener('keydown', (event: Event) => {
-      const isCmdOrCtrl = (event as KeyboardEvent).metaKey || (event as KeyboardEvent).ctrlKey;
-
-      if(isCmdOrCtrl && ['z', 'y'].includes((event as KeyboardEvent).key)) {
-        event.preventDefault();
-      }
-    })
-
     textarea.addEventListener('beforeinput', (event: Event) => {
       const inputType = (event as InputEvent).inputType;
       /**

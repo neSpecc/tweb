@@ -1,4 +1,6 @@
-import DragBoxCommand from './commands/DragBoxCommand copy';
+import DragBoxCommand from './commands/DragBoxCommand';
+import RotateBoxCommand from './commands/RotateBoxCommand';
+import ScaleBoxCommand from './commands/ScaleBoxCommand';
 import type {CommandsService} from './useCanvasLayers';
 
 export interface TextBoxMeta {
@@ -189,11 +191,6 @@ export function useDraggableBox(commands: CommandsService) {
   }
 
   function scale(scalingBox: ScalingBoxData, event: MouseEvent, minSize = 0) {
-    if(scalingBox.box.position.rotationAngle !== undefined && scalingBox.box.position.rotationAngle !== 0) {
-      scaleRotated(scalingBox, event, minSize);
-      return;
-    }
-
     const box = scalingBox.box;
     const parent = parentMap.get(box.el);
 
@@ -359,87 +356,14 @@ export function useDraggableBox(commands: CommandsService) {
       }
     }
 
-    box.el.style.left = `${adjusted.left}px`;
-    box.el.style.top = `${adjusted.top}px`;
-    box.el.style.width = `${adjusted.width}px`;
-    box.el.style.height = `${adjusted.height}px`;
-
-    box.position.width = adjusted.width;
-    box.position.height = adjusted.height;
-    box.position.x = adjusted.left;
-    box.position.y = adjusted.top;
-
-    scalingBox.box.creationAttributes.onResize?.(box.position.width, box.position.height, box.position.x, box.position.y);
-  }
-
-  function scaleRotated(scalingBox: ScalingBoxData, event: MouseEvent, minSize: number) {
-    const box = scalingBox.box;
-    const parent = parentMap.get(box.el);
-
-    if(!parent) {
-      return;
-    }
-
-    const maxSize = parent.rect.width;
-
-    const startingPoint = currentlyScaling!.startPoint;
-    const startingPointInParent = getPointInParent(parent, startingPoint.pageX, startingPoint.pageY);
-    const currentPointInParent = getPointInParent(parent, event.pageX, event.pageY);
-
-    const distanceX = currentPointInParent.x - startingPointInParent.x;
-
-    if(distanceX === 0) {
-      return;
-    }
-
-    let isGrow;
-
-    switch(scalingBox.direction) {
-      case 'top left':
-      case 'bottom left':
-        isGrow = distanceX < 0;
-        break;
-      case 'top right':
-      case 'bottom right':
-        isGrow = distanceX > 0;
-        break;
-    }
-
-    // console.log('dis dir', distanceX, scalingBox.direction, isGrow);
-
-    /**
-     * Now we to increate box element size by distanceX
-     * with saving the aspect ratio
-     */
-
-    let newWidth;
-
-    const factor = 0.5;
-    const absoluteDistanceX = Math.abs(distanceX) * factor;
-    const aspectRatio = scalingBox.startSize.width / scalingBox.startSize.height;
-
-    if(isGrow) {
-      newWidth = scalingBox.startSize.width + absoluteDistanceX;
-    }
-    else {
-      newWidth = scalingBox.startSize.width - absoluteDistanceX;
-    }
-
-    /**
-     * Clamp the new width to:
-     * - minSize
-     * - maxSize
-     * - parent width
-     * - parent height
-     */
-    newWidth = clamp(newWidth, minSize, Math.min(parent.rect.width, maxSize));
-
-    const newHeight = newWidth / aspectRatio;
-
-    box.el.style.width = `${newWidth}px`;
-    box.el.style.height = `${newHeight}px`;
-
-    scalingBox.box.creationAttributes.onResize?.(newWidth, newHeight);
+    commands.execute(new ScaleBoxCommand(
+      box,
+      adjusted.width,
+      adjusted.height,
+      adjusted.left,
+      adjusted.top,
+      scalingBox.box.creationAttributes.onResize
+    ));
   }
 
   function drag(draggingBox: DraggingBoxData, event: MouseEvent) {
@@ -636,10 +560,7 @@ export function useDraggableBox(commands: CommandsService) {
       }
     }
 
-    // Apply rotation
-    box.el.style.transform = `rotate(${rotationAngle}deg)`;
-
-    box.position.rotationAngle = rotationAngle;
+    commands.execute(new RotateBoxCommand(box, rotationAngle));
   }
 
   function appendContentToBox(box: DraggableBox, element: HTMLElement) {
@@ -739,7 +660,7 @@ export function useDraggableBox(commands: CommandsService) {
   }
 
   function beginScale(box: DraggableBox, direction: DraggableBoxDirection, event: MouseEvent) {
-    // Get the rotation angle of the box
+    commands.startBatch();
 
     box.creationAttributes.onBeforeResize?.();
 
@@ -779,6 +700,8 @@ export function useDraggableBox(commands: CommandsService) {
     box.position.height = newHeight;
 
     box.creationAttributes.onAfterResize?.();
+
+    commands.endBatch();
   }
 
   function getRotationAngle(element: HTMLElement): number {
@@ -832,6 +755,8 @@ export function useDraggableBox(commands: CommandsService) {
   }
 
   function beginRotate(box: DraggableBox, event: MouseEvent) {
+    commands.startBatch();
+
     box.creationAttributes.onBeforeRotate?.();
 
     const boxRect = box.el.getBoundingClientRect();
@@ -889,6 +814,8 @@ export function useDraggableBox(commands: CommandsService) {
     });
 
     hideHorizon(parentMap.get(box.el)!);
+
+    commands.endBatch();
   }
 
   function removeBox(box: DraggableBox) {

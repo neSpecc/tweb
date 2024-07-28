@@ -122,6 +122,7 @@ export function useCanvasLayers(params?: UseCanvasLayersParams) {
   const keydownHandler = (event: KeyboardEvent) => {
     if(event.metaKey || event.ctrlKey) {
       if(event.key === 'z') {
+        event.preventDefault();
         commands.undo();
       }
       else if(event.key === 'y') {
