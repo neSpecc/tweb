@@ -20,8 +20,8 @@ import {i18n} from '../../lib/langPack';
 
 
 /**
- * @todo second rotate90 decreases width
  * @todo fix hightlighs and shadows filters
+ * @todo second rotate90 decreases width
  * @todo fix erasing effect of the Blur Brush
  * @todo use passive event listeners where possible
  * @todo store drawign Tools icons in asssets
@@ -34,7 +34,7 @@ function MediaEditor(params: {
   height: number,
   onClose: () => void,
   onSave: (file: File) => void
-}, {middleware}: { middleware: Middleware }) {
+}) {
   const [originalImage, setOriginalImage] = createSignal<HTMLImageElement>();
   const [layerManager, setLayerManager] = createSignal<ReturnType<typeof useCanvasLayers>>();
   const [tab, setTab] = createSignal<number>(0);

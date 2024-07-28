@@ -1,5 +1,4 @@
 import PopupElement from '.';
-import {type SendFileDetails} from '../../lib/appManagers/appMessagesManager';
 import confirmationPopup from '../confirmationPopup';
 import MediaEditor from '../mediaEditor';
 
@@ -43,12 +42,6 @@ export default class PopupMediaEditor extends PopupElement {
       height: params.height,
       onClose,
       onSave
-    }, {
-      middleware: this.middlewareHelper.get()
     }) as Node)
-  }
-
-  private onImageLoad(image: HTMLImageElement) {
-
   }
 }

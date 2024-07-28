@@ -25,7 +25,7 @@ export function useFilters() {
    */
   function brightness(data: Uint8ClampedArray, brightness: number): void {
     let factor = (brightness + 100) / 100;
-    const strength = 0.8;
+    const strength = 0.6;
 
     factor = factor * strength + 1 - strength;
 
@@ -42,12 +42,13 @@ export function useFilters() {
    * @param contrast - The contrast value to apply. From -100 to 100.
    */
   function contrast(data: Uint8ClampedArray, contrast: number) {
+    const strength = 0.5;
     const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
 
     for(let i = 0; i < data.length; i += 4) {
-      data[i] = Math.min(255, Math.max(0, factor * (data[i] - 128) + 128));
-      data[i + 1] = Math.min(255, Math.max(0, factor * (data[i + 1] - 128) + 128));
-      data[i + 2] = Math.min(255, Math.max(0, factor * (data[i + 2] - 128) + 128));
+      data[i] = Math.min(255, Math.max(0, strength * (factor * (data[i] - 128) + 128) + (1 - strength) * data[i]));
+      data[i + 1] = Math.min(255, Math.max(0, strength * (factor * (data[i + 1] - 128) + 128) + (1 - strength) * data[i + 1]));
+      data[i + 2] = Math.min(255, Math.max(0, strength * (factor * (data[i + 2] - 128) + 128) + (1 - strength) * data[i + 2]));
     }
   }
 
@@ -78,10 +79,11 @@ export function useFilters() {
    */
   function warmth(data: Uint8ClampedArray, warmth: number) {
     const factor = warmth / 100;
+    const strength = 0.5;
 
     for(let i = 0; i < data.length; i += 4) {
-      data[i] = Math.min(255, Math.max(0, data[i] + factor * 50)); // Red
-      data[i + 2] = Math.min(255, Math.max(0, data[i + 2] - factor * 50)); // Blue
+      data[i] = Math.min(255, Math.max(0, data[i] + strength * (factor * 50))); // Red
+      data[i + 2] = Math.min(255, Math.max(0, data[i + 2] - strength * (factor * 50))); // Blue
     }
   }
 
@@ -202,6 +204,7 @@ export function useFilters() {
 
   function sharpen(data: Uint8ClampedArray, sharpen: number, {width, height}: { width: number; height: number }) {
     const intensity = sharpen / 100;
+    const strength = 0.7;
 
     const weights = [
       0,
@@ -240,9 +243,9 @@ export function useFilters() {
           }
         }
 
-        tmpData[offset] = Math.min(Math.max(data[offset] + intensity * (r - data[offset]), 0), 255);
-        tmpData[offset + 1] = Math.min(Math.max(data[offset + 1] + intensity * (g - data[offset + 1]), 0), 255);
-        tmpData[offset + 2] = Math.min(Math.max(data[offset + 2] + intensity * (b - data[offset + 2]), 0), 255);
+        tmpData[offset] = Math.min(Math.max(data[offset] + strength * intensity * (r - data[offset]), 0), 255);
+        tmpData[offset + 1] = Math.min(Math.max(data[offset + 1] + strength * intensity * (g - data[offset + 1]), 0), 255);
+        tmpData[offset + 2] = Math.min(Math.max(data[offset + 2] + strength * intensity * (b - data[offset + 2]), 0), 255);
         tmpData[offset + 3] = data[offset + 3]; // Preserve alpha
       }
     }
@@ -252,6 +255,7 @@ export function useFilters() {
       data[i] = tmpData[i];
     }
   }
+
 
   function enhance(data: Uint8ClampedArray, enhanceValue: number, imageSize = {width: 0, height: 0}) {
     const intensity = 0.2;
@@ -277,9 +281,6 @@ export function useFilters() {
     sharpen,
     enhance
   };
-
-  // const offScreenCanvas = document.createElement('canvas');
-  // const offScreenContext = offScreenCanvas.getContext('2d');
 
   function applyFilter(imageData: ImageData, filter: keyof CanvasFilters, value: number) {
     const data = imageData.data;
