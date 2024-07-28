@@ -96,7 +96,6 @@ function Enhance(props: EnhanceProps) {
 
   function startBatchIfNeeded() {
     if(!isBatching) {
-      console.log('startBatch')
       props.layerMaganer().commands.startBatch();
       isBatching = true;
     }

@@ -116,25 +116,33 @@ export function useFilters() {
   /**
    * Apply highlights adjustment to the image.
    * @param data - The underlying pixel data for a specified portion of the canvas.
-   * @param highlights - The highlights adjustment value (-100 to 100).
+   * @param value - The highlights adjustment value (-100 to 100).
    */
-  function highlights(data: Uint8ClampedArray, highlights: number) {
-    const threshold = 255 * (1 - Math.abs(highlights / 100));
+  function highlights(data: Uint8ClampedArray, value: number) {
+    const threshold = 255 * (1 - Math.abs(value / 100));
+    const strength = 0.3;
 
     for(let i = 0; i < data.length; i += 4) {
-      const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const brightness = (r + g + b) / 3;
 
-      if(highlights >= 0 && brightness > threshold) {
-        const factor = 1 + Math.abs(highlights / 100);
-        data[i] = Math.min(255, data[i] * factor); // Red
-        data[i + 1] = Math.min(255, data[i + 1] * factor); // Green
-        data[i + 2] = Math.min(255, data[i + 2] * factor); // Blue
-      }
-      else if(highlights < 0) {
-        const factor = 1 - Math.abs(highlights / 100);
-        data[i] *= factor; // Red
-        data[i + 1] *= factor; // Green
-        data[i + 2] *= factor; // Blue
+      if(value >= 0 && brightness > threshold) {
+        const factor = 1 + Math.abs(value / 100) * strength;
+        const blend = (brightness - threshold) / (255 - threshold);
+        data[i] = Math.min(255, r * (1 - blend) + r * factor * blend);
+        data[i + 1] = Math.min(255, g * (1 - blend) + g * factor * blend);
+        data[i + 2] = Math.min(255, b * (1 - blend) + b * factor * blend);
+      } else if(value < 0) {
+        const factor = 1 - Math.abs(value / 100) * strength;
+        if(brightness > threshold) {
+          const average = (r + g + b) / 3;
+          const blend = (brightness - threshold) / (255 - threshold);
+          data[i] = Math.min(255, r * (1 - blend) + (average + (r - average) * factor) * blend);
+          data[i + 1] = Math.min(255, g * (1 - blend) + (average + (g - average) * factor) * blend);
+          data[i + 2] = Math.min(255, b * (1 - blend) + (average + (b - average) * factor) * blend);
+        }
       }
     }
   }
@@ -146,21 +154,31 @@ export function useFilters() {
    */
   function shadows(data: Uint8ClampedArray, shadows: number) {
     const threshold = 255 * (Math.abs(shadows / 100));
+    const strength = 0.5;
 
     for(let i = 0; i < data.length; i += 4) {
-      const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const brightness = (r + g + b) / 3;
 
       if(shadows > 0 && brightness < threshold) {
-        const factor = 1 + shadows / 100;
-        data[i] = Math.max(0, data[i] * factor); // Red
-        data[i + 1] = Math.max(0, data[i + 1] * factor); // Green
-        data[i + 2] = Math.max(0, data[i + 2] * factor); // Blue
-      }
-      else if(shadows <= 0 && brightness < threshold) {
-        // Do nothing for non-shadow pixels when shadows <= 0
+        const factor = 1 - shadows / 100 * strength;
+        const blend = (threshold - brightness) / threshold;
+        data[i] = Math.max(0, r * (1 - blend) + r * factor * blend);
+        data[i + 1] = Math.max(0, g * (1 - blend) + g * factor * blend);
+        data[i + 2] = Math.max(0, b * (1 - blend) + b * factor * blend);
+      } else if(shadows <= 0 && brightness < threshold) {
+        const factor = 1 + Math.abs(shadows / 100) * strength;
+        const blend = (threshold - brightness) / threshold;
+        const average = (r + g + b) / 3;
+        data[i] = Math.max(0, r * (1 - blend) + (average + (r - average) * factor) * blend);
+        data[i + 1] = Math.max(0, g * (1 - blend) + (average + (g - average) * factor) * blend);
+        data[i + 2] = Math.max(0, b * (1 - blend) + (average + (b - average) * factor) * blend);
       }
     }
   }
+
 
   function vignette(data: Uint8ClampedArray, vignette: number, {width, height}: { width: number; height: number }) {
     const centerX = width / 2;
@@ -246,11 +264,10 @@ export function useFilters() {
         tmpData[offset] = Math.min(Math.max(data[offset] + strength * intensity * (r - data[offset]), 0), 255);
         tmpData[offset + 1] = Math.min(Math.max(data[offset + 1] + strength * intensity * (g - data[offset + 1]), 0), 255);
         tmpData[offset + 2] = Math.min(Math.max(data[offset + 2] + strength * intensity * (b - data[offset + 2]), 0), 255);
-        tmpData[offset + 3] = data[offset + 3]; // Preserve alpha
+        tmpData[offset + 3] = data[offset + 3];
       }
     }
 
-    // Copy tmpData back to original data array
     for(let i = 0; i < data.length; i++) {
       data[i] = tmpData[i];
     }
@@ -258,14 +275,14 @@ export function useFilters() {
 
 
   function enhance(data: Uint8ClampedArray, enhanceValue: number, imageSize = {width: 0, height: 0}) {
-    const intensity = 0.2;
+    const intensity = 0.35;
     const contrastValue = enhanceValue * intensity * 0.5;
-    const brightnessValue = enhanceValue * intensity * 0.4;
-    const saturationValue = enhanceValue * intensity * 0.6;
+    const saturationValue = enhanceValue * intensity * 0.4;
+    const shadowsValue = enhanceValue * intensity * 0.6;
 
     contrast(data, contrastValue);
-    brightness(data, brightnessValue);
     saturation(data, saturationValue);
+    shadows(data, shadowsValue);
   }
 
   const filters: Record<string, Filter> = {
