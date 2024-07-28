@@ -7,6 +7,7 @@ import Icon from '../../icon';
 import {RangeSelectorTsx} from '../../rangeSelectorTsx';
 import ripple from '../../ripple';
 import Icons from '../../../icons';
+import {i18n} from '../../../lib/langPack';
 
 interface TextToolProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
@@ -165,7 +166,7 @@ export default function TextTool(props: TextToolProps) {
       </div>
       <div class="pe-settings-adjust">
         <div class="pe-settings-adjust-header">
-          Size
+          { i18n('MediaEditor.Size') }
 
           <div class='pe-settings-adjust-header-counter'>
             { Math.floor(fontSize()) }
@@ -188,7 +189,7 @@ export default function TextTool(props: TextToolProps) {
 
       <div class="pe-settings__section">
         <div class="pe-settings__section-header">
-          Font
+          { i18n('MediaEditor.Font') }
         </div>
         {fonts.map((font, index) => (
           createTextRow(font, index)

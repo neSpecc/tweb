@@ -1,6 +1,4 @@
 import {For, Match, Switch, createSignal, onCleanup, onMount} from 'solid-js';
-// import SidebarSlider from '../slider';
-// import DrawTab from './draw';
 import {useCanvasLayers} from './services/useCanvasLayers';
 import Enhance from './components/Enhance';
 import TextTool from './components/TextTool';
@@ -18,6 +16,7 @@ import canvasToFile from '../../helpers/canvas/canvasToFile';
 import ButtonCorner from '../buttonCorner';
 import {attachClickEvent} from '../../helpers/dom/clickEvent';
 import Scrollable from '../scrollable';
+import {i18n} from '../../lib/langPack';
 
 
 /**
@@ -36,8 +35,6 @@ import Scrollable from '../scrollable';
  * @todo fix hightlighs and shadows filters
  * @todo fix erasing effect of the Blur Brush
  * @todo snell roundhand font lays out on left side incorrectly
- * @todo i18n
- * @todo long horizontal image shrinks layout
  * @todo use passive event listeners where possible
  *
  */
@@ -371,7 +368,7 @@ function MediaEditor(params: {
           <div class="navbar-and-tabs">
             <div class="navbar">
               <div class="navbar__title">
-                Edit
+                { i18n('Edit') }
               </div>
               <div class="navbar__undo">
                 <div

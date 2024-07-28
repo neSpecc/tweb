@@ -2900,7 +2900,25 @@ const lang = {
     'other_value': 'Subscribe to [Telegram Premium]() to increase upload speeds %d times.'
   },
   'MediaEditor.DiscardQuestion': 'Discard editing?',
-  'MediaEditor.DiscardQuestionText': 'Are you sure you want to discard this picture?'
+  'MediaEditor.DiscardQuestionText': 'Are you sure you want to discard this picture?',
+  'MediaEditor.Filters.Enhance': 'Enhance',
+  'MediaEditor.Filters.Brightness': 'Brightness',
+  'MediaEditor.Filters.Contrast': 'Contrast',
+  'MediaEditor.Filters.Saturation': 'Saturation',
+  'MediaEditor.Filters.Warmth': 'Warmth',
+  'MediaEditor.Filters.Fade': 'Fade',
+  'MediaEditor.Filters.Highlights': 'Highlights',
+  'MediaEditor.Filters.Shadows': 'Shadows',
+  'MediaEditor.Filters.Vignette': 'Vignette',
+  'MediaEditor.Filters.Grain': 'Grain',
+  'MediaEditor.Filters.Sharpen': 'Sharpen',
+  'MediaEditor.AspectRatio': 'Aspect ratio',
+  'MediaEditor.AspectRatios.Free': 'Free',
+  'MediaEditor.AspectRatios.Original': 'Original',
+  'MediaEditor.AspectRatios.Square': 'Square',
+  'MediaEditor.Size': 'Size',
+  'MediaEditor.Font': 'Font'
+
 };
 
 export default lang;

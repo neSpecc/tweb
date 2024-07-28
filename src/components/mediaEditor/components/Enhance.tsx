@@ -3,10 +3,23 @@ import {For, createSignal, onCleanup, onMount} from 'solid-js';
 import type {CanvasLayer, useCanvasLayers} from '../services/useCanvasLayers';
 import {RangeSelectorTsx} from '../../rangeSelectorTsx';
 import ApplyFilterCommand from '../services/commands/ApplyFilterCommand';
+import {i18n} from '../../../lib/langPack';
 
 interface EnhanceProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
 }
+
+type langPackFiltersKey = 'MediaEditor.Filters.Enhance'
+  | 'MediaEditor.Filters.Brightness'
+  | 'MediaEditor.Filters.Contrast'
+  | 'MediaEditor.Filters.Saturation'
+  | 'MediaEditor.Filters.Warmth'
+  | 'MediaEditor.Filters.Fade'
+  | 'MediaEditor.Filters.Highlights'
+  | 'MediaEditor.Filters.Shadows'
+  | 'MediaEditor.Filters.Vignette'
+  | 'MediaEditor.Filters.Grain'
+  | 'MediaEditor.Filters.Sharpen';
 
 function Enhance(props: EnhanceProps) {
   const [enhance, setEnhance] = createSignal<number>(0);
@@ -96,7 +109,9 @@ function Enhance(props: EnhanceProps) {
           {([effect, name, [min, max], signal]) => (
             <div class="adjust">
               <div class="adjust__name-and-value">
-                {name}
+                {
+                  i18n(`MediaEditor.Filters.${name}` as langPackFiltersKey)
+                }
                 <div
                   classList={
                     {

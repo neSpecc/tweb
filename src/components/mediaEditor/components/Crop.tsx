@@ -5,6 +5,7 @@ import type {LeftZoneControls} from '../services/leftZoneControls';
 import type {DraggableBox} from '../services/useDraggableBox';
 import Icon from '../../icon';
 import ripple from '../../ripple';
+import {i18n} from '../../../lib/langPack';
 
 interface CropProps {
   layerMaganer: Accessor<ReturnType<typeof useCanvasLayers>>;
@@ -35,6 +36,10 @@ interface Ratio {
   title: string;
   icon: HTMLElement;
 }
+
+type langPackAspectRatiosKey = 'MediaEditor.AspectRatios.Free'
+  | 'MediaEditor.AspectRatios.Original'
+  | 'MediaEditor.AspectRatios.Square'
 
 export default function Crop(props: CropProps) {
   const [angle, setAngle] = createSignal(0);
@@ -631,7 +636,9 @@ export default function Crop(props: CropProps) {
         onClick={() => aspectRatioChanged(ratio)}
       >
         <div class="pe-crop__icon">{ ratio.icon }</div>
-        <div class="pe-crop__title">{ ratio.title }</div>
+        <div class="pe-crop__title">{
+          /\d/.test(ratio.title) ? ratio.title : i18n(`MediaEditor.AspectRatios.${ratio.title}` as langPackAspectRatiosKey)
+        }</div>
       </div>
     );
 
@@ -643,7 +650,7 @@ export default function Crop(props: CropProps) {
   return (
     <div class="pe-settins pe-crop">
       <div class="pe-settings__section-header">
-        Aspect ratio
+        { i18n('MediaEditor.AspectRatio') }
       </div>
       <For each={ratios}>
         {ratioRow => (
